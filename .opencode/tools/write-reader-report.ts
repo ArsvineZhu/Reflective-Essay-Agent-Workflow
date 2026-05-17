@@ -41,14 +41,20 @@ export default tool({
     quoted_lines: tool.schema.array(tool.schema.string()).optional().describe(
       "打动你或让你质疑的原文引用. 逐句摘录, 每句一条. 优先选让你停下来, 让你鼻子一酸, 让你想反驳的句子. 可选, 但建议至少 1-2 条."
     ),
-    free_response: tool.schema.string().describe(
-      "自由发挥, 诚实第一. 不要预设结构, 不要模仿批评家的分析框架. 写读完脑子里冒出来的东西: 被打动, 无感, 质疑, 生气, 怀疑是 AI 写的, 觉得浪费了时间 -- 都可以. 如果某个点让你联想到自己的经历, 写出来. 这是读后感最真实的部分."
+    highlights: tool.schema.array(tool.schema.string()).describe(
+      "【必填】文章亮点列表. 每条必须: 明确指出哪个部分好 + 具体好在哪里. 例如: '编辑低头看下一篇稿子的细节 -- 用动作留白代替情绪描写', '深夜便利店场景 -- 用具体单位锚住抽象情感'. 至少 2 条."
+    ),
+    weaknesses: tool.schema.array(tool.schema.string()).describe(
+      "【必填】文章缺点列表. 每条必须: 明确指出哪个部分有问题 + 具体为什么有问题. 例如: '三段叙事结构完全一致 -- 削弱了情感递增效果', '结尾金句设计感太强 -- 与全文朴素语气产生裂缝'. 至少 2 条, 没有明显缺点也要写可改进之处."
+    ),
+    free_response: tool.schema.string().optional().describe(
+      "自由感受补充. 简短写下读完的直觉感受或联想到的个人经历. 不要长篇大论, 3 句话以内."
     ),
     touching_points: tool.schema.array(tool.schema.string()).optional().describe(
-      "打动你的段落/句子简述. 简要说明哪个具体场景或句子触动了你, 以及为什么. 可选, 但建议至少 1 条."
+      "打动你的段落/句子简述. 简要说明哪个具体场景或句子触动了你, 以及为什么."
     ),
     critical_points: tool.schema.array(tool.schema.string()).optional().describe(
-      "不同意的点或觉得站不住脚的地方. 诚实记录你的质疑: 逻辑漏洞, 不真实的细节, 过度的煽情, 偷换概念等. 没有质疑可传空数组 []."
+      "【已废弃, 使用 weaknesses 代替】不同意的点或觉得站不住脚的地方."
     ),
     ai_suspicion: tool.schema.array(tool.schema.string()).optional().describe(
       "觉得文章像是 AI 写的吗? 哪里像? 为什么? 关注: 结构是否太工整, 举例是否太通用, 语言是否有个人质感. 没有怀疑可传空数组 []."
@@ -66,7 +72,12 @@ export default tool({
   async execute(args, context) {
     // --- validation ---
     if (!args.style) throw new Error("style 不能为空")
-    if (!args.free_response) throw new Error("free_response 不能为空")
+    if (!args.highlights || !Array.isArray(args.highlights) || args.highlights.length < 2) {
+      throw new Error("highlights 必填, 且至少 2 条")
+    }
+    if (!args.weaknesses || !Array.isArray(args.weaknesses) || args.weaknesses.length < 2) {
+      throw new Error("weaknesses 必填, 且至少 2 条")
+    }
     if (!args.overall_evaluation) throw new Error("overall_evaluation 不能为空")
     if (!args.evaluation) throw new Error("evaluation 不能为空")
 
@@ -97,9 +108,10 @@ export default tool({
     const report = {
       style: args.style,
       quoted_lines: args.quoted_lines || [],
-      free_response: args.free_response,
+      highlights: args.highlights,
+      weaknesses: args.weaknesses,
+      free_response: args.free_response || "",
       touching_points: args.touching_points || [],
-      critical_points: args.critical_points || [],
       ai_suspicion: args.ai_suspicion || [],
       overall_evaluation: args.overall_evaluation,
       evaluation: args.evaluation,
