@@ -3,6 +3,7 @@ description: 审校编排器。接收文章路径，并行派 3 批评 + 5 读�
 mode: primary
 model: deepseek/deepseek-v4-flash
 temperature: 0.7
+color: "#7CFF5E"
 prompt: "{file:./.opencode/prompts/common.md}"
 tools:
   read: true

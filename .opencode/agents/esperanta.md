@@ -4,6 +4,7 @@ mode: primary
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
 temperature: 1.3
+color: "#7CFF5E"
 prompt: "{file:./.opencode/prompts/common.md}"
 tools:
   read: true

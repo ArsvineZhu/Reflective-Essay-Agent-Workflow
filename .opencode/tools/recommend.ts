@@ -601,7 +601,7 @@ export default tool({
     techniques: tool.schema.array(tool.schema.string()).optional().describe("指定需要学习的技法, 如:['螺旋结构', '细节锚定']. 仅推荐使用了指定技法的文章."),
     categories: tool.schema.array(tool.schema.string()).optional().describe("指定主题分类, 如:['家庭与亲情', '互联网与文化']."),
     rebuildIndex: tool.schema.boolean().default(false).describe("强制重建文章索引, 默认 false."),
-    updateLexicon: tool.schema.boolean().default(true).describe("使用哈工大同义词词林扩展版扩充词库后执行推荐."),
+    updateLexicon: tool.schema.boolean().default(true).describe("[推荐] 使用哈工大同义词词林扩展版扩充词库后执行推荐, 默认 true."),
   },
   async execute(args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()
