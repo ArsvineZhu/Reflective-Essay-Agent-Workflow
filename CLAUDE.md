@@ -77,18 +77,18 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 
 ## Architecture
 
-### Agent Roles (defined in `.opencode/agents/`)
+### Agent Roles (defined in `.opencode/agents/`) — 8 agents total
 
-| Agent | Model | Role |
-|-------|-------|------|
-| **Priestess** | ds-v4-flash | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, appends metadata to finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
-| **Esperanta** | ds-v4-pro (max) | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
-| **Kaltsit** | ds-v4-flash | Review orchestrator. Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
-| **critic-originality** | ds-v4-flash | Checks A1-A4: sentence reuse, material borrowing, metaphor overlap, ending similarity against `ref/` |
-| **critic-structure** | ds-v4-flash | Checks B1-B12: spiral naturalness, golden sentences, metaphor consistency, parallelism, anchoring, open endings |
-| **critic-voice** | ds-v4-flash | Checks C1-C8: "we" voice, exclamation marks, preaching, academic citations, scaffolding, language compliance |
-| **critic-ai** | ds-v4-flash | Checks D1-D8: burstiness, syntactic repetition, transition scaffolding, token probability, emotional flatness, golden sentence patterns, example specificity, safety zone overuse |
-| **Reader** | ds-v4-flash | 5 reader types across emotion/reason/language/experience/safety categories. Writes reader reports via `write-reader-report` tool |
+| Agent | Mode | Model | Color | Role |
+|-------|------|-------|-------|------|
+| **Priestess** | primary | ds-v4-flash | `#b5d2e9` 淡蓝灰白 | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, appends metadata to finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
+| **Esperanta** | primary | ds-v4-pro (max) | `#7CFF5E` 浅荧光绿 | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
+| **Kaltsit** | primary | ds-v4-flash | `#7CFF5E` 浅荧光绿 | Review orchestrator. Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
+| **critic-originality** | subagent | ds-v4-flash | — | Checks A1-A4: sentence reuse, material borrowing, metaphor overlap, ending similarity against `ref/` |
+| **critic-structure** | subagent | ds-v4-flash | — | Checks B1-B12: spiral naturalness, golden sentences, metaphor consistency, parallelism, anchoring, open endings |
+| **critic-voice** | subagent | ds-v4-flash | — | Checks C1-C8: "we" voice, exclamation marks, preaching, academic citations, scaffolding, language compliance |
+| **critic-ai** | subagent | ds-v4-flash | — | Checks D1-D8: burstiness, syntactic repetition, transition scaffolding, token probability, emotional flatness, golden sentence patterns, example specificity, safety zone overuse |
+| **Reader** | subagent | ds-v4-flash | — | 5 reader types across emotion/reason/language/experience/safety categories. Writes reader reports via `write-reader-report` tool |
 
 ### Context Passing (file-based, never via conversation history)
 
@@ -123,21 +123,35 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 
 Each has an `analysis.md` that Esperanta must read via `load-references` tool before writing.
 
+### Thematic Lexicon (`.opencode/lexicon/`)
+
+7 files powering the `recommend` tool and `classify-topic-hook` plugin:
+
+| File | Type | Purpose |
+|------|------|---------|
+| `cilin.txt` | 17,817 synonym groups | 哈工大同义词词林扩展版, used by `recommend(updateLexicon=true)` to auto-expand concept/topic/structure lexicons |
+| `concept-mapping.json` | 19 concept groups | 概念映射 (家庭/愧疚/成长/异化/孤独/焦虑/自由/意义...), each with 同义词/近义词/相关词 |
+| `topic-lexicon.json` | 15 topic categories | 话题分类关键词 (家庭与亲情/互联网与文化/城市与生活/死亡与意义...), used for article indexing and auto-classification |
+| `technique-lexicon.json` | 12+ technique patterns | 写作技法关键词 (螺旋结构/细节锚定/悖论修辞/排比分层...), used for technique detection |
+| `issue-patterns.json` | Issue pattern library | 常见写作问题模式 (套话/空洞/跳跃/说教...), used for weakness detection |
+| `structure-patterns.json` | 3 detection patterns | 结构检测种子词 + Cilin expanded words (转折词/时间标记/排比词), used by `detectStructureType()` |
+| `stop-words.json` | 700+ stop words | 中文停用词, used by `simpleChineseSegment()` for keyword filtering |
+
 ### Custom Tools (`.opencode/tools/`)
 
-Written in TypeScript, run via Bun. All tools are auto-discovered (no need to declare in `opencode.json`).
+Written in TypeScript, run via Bun. All tools are auto-discovered (no need to declare in `opencode.json`). `lexicon-loader.ts` is a library module (not a tool), imported by other tools.
 
 | Tool | Caller | Purpose |
 |------|--------|---------|
 | `aggregate-report` | Kaltsit | Merge critic + reader reports into `tmp/review-report.md` |
 | `append-metadata` | Priestess | Append standard metadata block to finished article (auto-extract title/word-count, auto-read score) |
 | `archive` | Priestess | Archive final article + all intermediate files, clear `tmp/` |
-| `count` | Priestess | Count Chinese characters in `output/*.txt` (excludes title & metadata) |
-| `essence` | Esperanta | List `output/` articles with score > 80. Also supports listing all articles or fetching specific article content. |
+| `count` | Priestess / plugin | Count Chinese characters in `output/*.txt` (excludes title & metadata). Logic embedded in `word-count-hook` |
+| `essence` | Esperanta | **High-score article browser**. `essence()` → score >80 listing; `essence(list=true)` → all articles; `essence(name="filename")` → full text |
 | `load-references` | Esperanta | Load all 6 `analysis.md` → `tmp/_all-analysis.md` |
-| `recommend` | Esperanta | **Enhanced Recommendation Engine**: Smart sample selection based on topic + technique analysis. Built with 5 lexicon databases, 15 topic categories, 12 technique recognition patterns, ~85% matching accuracy. Outputs technique summaries (low token usage). 支持 `updateLexicon=true` 参数使用哈工大同义词词林扩展版自动扩充词库. |
-| `write-critic-report` | critic-* | Write review JSON with auto-numbering + auto-scoring |
-| `write-reader-report` | Reader | Write reader response JSON with auto-numbering |
+| `recommend` | Esperanta | **Recommendation engine**: semantic topic matching + technique analysis. Args: `topic`, `limit`, `minScore`, `techniques`, `categories`, `updateLexicon` (uses Cilin to auto-expand lexicons). |
+| `write-critic-report` | critic-* | Write critic review JSON with auto-numbering, auto-scoring (100 - deductions), verdict (PASS/REJECT) |
+| `write-reader-report` | Reader | Write reader response JSON with structured reader style, sentiments, strengths/weaknesses |
 
 ### Plugins (`.opencode/plugins/`)
 
@@ -173,12 +187,13 @@ Decision point:
 
 ## Key Paths
 
-- Agent definitions: `.opencode/agents/*.md`
+- Agent definitions: `.opencode/agents/*.md` (8 agents)
 - Style rules (auto-loaded): `.opencode/prompts/common.md`
-- Custom tools: `.opencode/tools/*.ts`
+- Custom tools: `.opencode/tools/*.ts` (9 tools + 1 library module `lexicon-loader.ts`)
+- Lexicon databases: `.opencode/lexicon/` (7 files: cilin.txt + 6 JSON lexicons)
 - Output directory: `output/` (all articles as `.txt` with metadata blocks)
 - Temp context: `tmp/` (cleared between sessions)
-- Archives: `archive/YYYY-MM-DD-HHMM/`
+- Archives: `archive/YYYY-MM-DD-HHMM/` (5 archives)
 - Reference sources: `ref/*/`
 - Plugins: `.opencode/plugins/word-count-hook.ts`, `.opencode/plugins/classify-topic-hook.ts`
 - Config: `opencode.json`
@@ -243,9 +258,9 @@ Topic: { ... }
 ### Agent Switching (in OpenCode TUI)
 Press `Tab` to open the agent selector, or type at the prompt:
 ```
---agent priestess    # Research & orchestration
---agent esperanta    # Writing & revision
---agent kaltsit      # Review orchestration
+--agent priestess    # Research & orchestration (color: 淡蓝灰白 #b5d2e9)
+--agent esperanta    # Writing & revision (color: 浅荧光绿 #7CFF5E)
+--agent kaltsit      # Review orchestration (color: 浅荧光绿 #7CFF5E)
 ```
 
 ### Common Prompt Patterns
@@ -281,9 +296,16 @@ cat tmp/review-report.md
 # View finished articles
 ls output/
 cat output/*.txt
+
+# List lexicon databases
+ls .opencode/lexicon/
+
+# List plugins
+ls .opencode/plugins/
 ```
 
 ### Important Files to Know
 - `.opencode/prompts/common.md` — Core style rules, auto-loaded into ALL agents
-- `.opencode/lexicon/` — Thematic lexicon databases used by `recommend` tool
+- `.opencode/lexicon/` — 7 lexicon files: cilin.txt (Cilin), concept-mapping.json, topic-lexicon.json, technique-lexicon.json, issue-patterns.json, structure-patterns.json, stop-words.json
+- `.opencode/plugins/` — word-count-hook.ts (write/edit hook), classify-topic-hook.ts (post-tool hook)
 - `.opencode/commands/` — Custom command definitions
