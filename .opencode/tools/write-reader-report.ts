@@ -60,7 +60,7 @@ export default tool({
       "整体感受总结. 一句话概括读完后的核心感受, 10-20 字. 例如: '被击中了, 像是看了一把自己的日记', '有观察的起点但停在表面'."
     ),
     evaluation: tool.schema.string().describe(
-      "评价维度: 程度. 根据风格对应的维度填写, 如 `共情程度: 高`, `逻辑漏洞: 低`, `语言质感: 中`. 程度分三档: 高/中/低. 参考评价维度对照表."
+      "评价维度: 程度. 根据风格对应的维度填写, 如 `共情程度：高`, `逻辑漏洞：低`, `语言质感：中`. 程度分三档: 高/中/低. 参考评价维度对照表."
     ),
     score: tool.schema.number().describe(
       "评分, 满分 100. 根据你的真实感受打分: 80+ 优秀, 60-79 合格, <60 有问题. 不必精确, 诚实即可."
@@ -85,9 +85,9 @@ export default tool({
       throw new Error(`score 超出范围: ${args.score}, 允许 0-100`)
     }
 
-    const evalParts = args.evaluation.split(":")
+    const evalParts = args.evaluation.split("：")
     if (evalParts.length !== 2) {
-      throw new Error(`evaluation 格式错误: "${args.evaluation}", 应为 "维度: 程度" (如 "共情程度: 高")`)
+      throw new Error(`evaluation 格式错误: "${args.evaluation}", 应为 "维度：程度" (如 "共情程度：高")`)
     }
     const level = evalParts[1].trim()
     if (!VALID_LEVELS.includes(level)) {

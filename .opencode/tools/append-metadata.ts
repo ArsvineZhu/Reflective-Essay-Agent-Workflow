@@ -45,7 +45,7 @@ export default tool({
   description: "在文章末尾追加标准元数据区块. 自动提取标题与字数, 从审校报告读取综合评分, 其余字段由参数传入. 禁止手动估算字数.",
   args: {
     article: tool.schema.string().describe("文章路径, 如 output/xxx.txt"),
-    score: tool.schema.number().optional().describe("综合评分 (0-100). 不传则从 tmp/review-report.md 自动读取"),
+    score: tool.schema.number().optional().describe("综合评分 (0-100). 不建议自行传递，系统会自动从 tmp/review-report.md 读取"),
     requiredWords: tool.schema.string().optional().describe("要求字数, 如 '800', '700-900', 'Unspec'"),
     reasonForDeduction: tool.schema.array(tool.schema.string()).optional().describe("扣分理由列表"),
     abstract: tool.schema.string().optional().describe("文章摘要"),
