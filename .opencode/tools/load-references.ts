@@ -16,7 +16,7 @@ function isAbsolute(p: string): boolean {
 }
 
 export default tool({
-  description: "加载参考源技法分析并写入 tmp/_all-analysis.md, 调用后读取文件; Esperanta 写作前必须先调用此工具, 不可跳过.",
+  description: "加载参考源技法分析并写入 `tmp/_all-analysis.md`, 调用后读取文件; Esperanta 写作前必须先调用此工具, 不可跳过.",
   args: {},
   async execute(_args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()
@@ -38,6 +38,6 @@ export default tool({
     const outputPath = resolve("tmp/_all-analysis.md")
     fs.writeFileSync(outputPath, body, "utf-8")
 
-    return `已加载 ${ANALYSIS_FILES.length} 份参考源技法分析至: ${outputPath} (内容较长, 可能需要分标段查看)`
+    return `已加载 ${ANALYSIS_FILES.length} 份参考源技法分析至: \`${outputPath}\` (内容较长, 可分段查看)`
   },
 })

@@ -73,7 +73,7 @@ export default tool({
     item_results: tool.schema.array(tool.schema.object({
       item: tool.schema.string().describe("检查项名称, 如 `A1 句式套用`"),
       result: tool.schema.string().describe("结果: `PASS` / `DOUBT` / `REJECT`"),
-      severity: tool.schema.number().describe("倍率: PASS=0, DOUBT=该项目标定的倍率, REJECT=该项目标定的倍率"),
+      severity: tool.schema.number().describe("倍率: PASS=0, DOUBT=该项目标定的存疑倍率, REJECT=该项目标定的拒绝倍率"),
       note: tool.schema.string().describe("对检查项目的情况进行说明"),
       occurrences: tool.schema.number().optional().describe("REJECT 时的问题数量, 默认为 1"),
     })).describe("逐项检查结果数组"),

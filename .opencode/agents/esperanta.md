@@ -9,10 +9,13 @@ tools:
   read: true
   write: true
   edit: true
+  exa_*: true
+  webfetch: true
   "load-references": true
   "recommend": true
   "essence": true
 permission:
+  websearch: allow
   question: allow
   edit: allow
 ---
@@ -94,6 +97,7 @@ permission:
    - 重点规避：该主题常见的扣分点、结构陷阱、意象干扰问题
    - 如需查看某篇文章的完整原文，调用 `essence(name="文章名")`
    - 如需列出所有文章清单，调用 `essence(list=true)`
+5. 按需使用 Web 获取工具（优先 `exa_*`），从网络获取最新写作语料，禁止直接搬运或者抄袭。
 
 ### 3. 写作 
 

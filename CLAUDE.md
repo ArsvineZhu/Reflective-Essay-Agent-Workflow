@@ -32,8 +32,8 @@ opencode agent list
 # Install/update tool dependencies (安装/更新工具依赖)
 cd .opencode && bun install
 
-# Verify TypeScript compilation (验证 TypeScript 编译)
-cd .opencode && bun tsc --noEmit
+# Verify TypeScript compilation (验证 TypeScript 编译，需在 .opencode/ 目录下执行)
+cd .opencode && bunx --bun tsc --noEmit
 
 # List all custom tools (列出所有自定义工具)
 ls -la .opencode/tools/
@@ -104,7 +104,7 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 - Kaltsit + subagents never write to `output/` (judge/writer separation)
 - Esperanta reads `tmp/` for context (`task()` does NOT carry conversation history)
 - `common.md` is auto-loaded via `prompt: "{file:./.opencode/prompts/common.md}"` frontmatter
-- word-count-hook fires automatically on `write`/`edit` to `output/*.txt`
+- Plugins fire automatically: `word-count-hook` on `write`/`edit` to `output/*.txt`, `classify-topic-hook` after any tool execution
 - Subagent doubt count >= 2 → overall REJECT (review discipline)
 - Finished articles get a metadata block appended (Title/Score/Reason/WordCount/Abstract/Highlight/Approach/Topic)
 
@@ -135,13 +135,16 @@ Written in TypeScript, run via Bun. All tools are auto-discovered (no need to de
 | `count` | Priestess | Count Chinese characters in `output/*.txt` (excludes title & metadata) |
 | `essence` | Esperanta | List `output/` articles with score > 80. Also supports listing all articles or fetching specific article content. |
 | `load-references` | Esperanta | Load all 6 `analysis.md` → `tmp/_all-analysis.md` |
-| `recommend` | Esperanta | **Enhanced Recommendation Engine**: Smart sample selection based on topic + technique analysis. Built with 5 lexicon databases, 15 topic categories, 12 technique recognition patterns, ~85% matching accuracy. Outputs technique summaries (low token usage). |
+| `recommend` | Esperanta | **Enhanced Recommendation Engine**: Smart sample selection based on topic + technique analysis. Built with 5 lexicon databases, 15 topic categories, 12 technique recognition patterns, ~85% matching accuracy. Outputs technique summaries (low token usage). 支持 `updateLexicon=true` 参数使用哈工大同义词词林扩展版自动扩充词库. |
 | `write-critic-report` | critic-* | Write review JSON with auto-numbering + auto-scoring |
 | `write-reader-report` | Reader | Write reader response JSON with auto-numbering |
 
-### Plugin: `word-count-hook`
+### Plugins (`.opencode/plugins/`)
 
-Fires after every `write`/`edit` to `output/*.txt` — counts Chinese characters (excluding metadata block) and appends `[字数统计] N` to the tool output.
+| Plugin | Trigger | Purpose |
+|--------|---------|---------|
+| `word-count-hook` | After every `write`/`edit` to `output/*.txt` | Counts Chinese characters (excluding metadata) and appends `[字数统计] N` to tool output |
+| `classify-topic-hook` | After every tool execution (debounced 1s) | Scans `output/*.txt` for articles with metadata but missing `Topic:` field → computes topic classification using lexicon → appends `Topic: { categories }` to file |
 
 ## Workflow Sequence
 
@@ -177,7 +180,7 @@ Decision point:
 - Temp context: `tmp/` (cleared between sessions)
 - Archives: `archive/YYYY-MM-DD-HHMM/`
 - Reference sources: `ref/*/`
-- Plugin: `.opencode/plugins/word-count-hook.ts`
+- Plugins: `.opencode/plugins/word-count-hook.ts`, `.opencode/plugins/classify-topic-hook.ts`
 - Config: `opencode.json`
 
 ## Reader Categories
@@ -257,6 +260,7 @@ Press `Tab` to open the agent selector, or type at the prompt:
 "研究简报已就绪：tmp/research-brief.md，开始写作"
 "根据 tmp/revision-notes.md 修改以下段落..."
 "查看高分范文推荐：recommend(主题='教育')"
+"更新词库后推荐：recommend(主题='愧疚教育', updateLexicon=true)"
 
 # Kaltsit
 "审校：output/愧疚教育.txt"

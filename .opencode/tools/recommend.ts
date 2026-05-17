@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin"
-import { readdirSync, readFileSync, existsSync, writeFileSync, statSync } from "fs"
-import { join } from "path"
+import * as fs from "fs"
+import * as path from "path"
 import {
   loadLexicon,
   calculateTopicMatchScore,
@@ -48,14 +48,14 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
   const lexicon = loadLexicon(basePath)
   const articles: ArticleMeta[] = []
 
-  const files = readdirSync(outputDir).sort()
+  const files = fs.readdirSync(outputDir).sort()
   for (const fname of files) {
     if (fname.startsWith('_') || !fname.endsWith('.txt')) continue
 
-    const fp = join(outputDir, fname)
+    const fp = path.join(outputDir, fname)
     try {
-      const stat = statSync(fp)
-      const text = readFileSync(fp, 'utf-8')
+      const stat = fs.statSync(fp)
+      const text = fs.readFileSync(fp, 'utf-8')
 
       // 解析元数据
       const sm = text.match(/^Score:\s*(\d+)/m)
@@ -66,9 +66,12 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
       const tm = text.match(/^Title:\s*"(.+?)"/m)
       const title = tm ? tm[1] : fname.replace('.txt', '')
 
-      const sepIdx = text.indexOf('\n---\n')
+      // 解析元数据分隔符 (兼容 \n 和 \r\n 行尾)
+      const sepMatch = text.match(/\r?\n---\r?\n/)
+      const sepIdx = sepMatch ? sepMatch.index! : -1
+      const sepLen = sepMatch ? sepMatch[0].length : 0
       const body = sepIdx === -1 ? text : text.substring(0, sepIdx)
-      const meta = sepIdx === -1 ? '' : text.substring(sepIdx + 5)
+      const meta = sepIdx === -1 ? '' : text.substring(sepIdx + sepLen)
 
       // 提取 Highlight 和 Deduction
       const highlights: string[] = []
@@ -105,7 +108,7 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
       const metaphors = extractMetaphors(body)
 
       // 识别结构类型
-      const structure = detectStructureType(body)
+      const structure = detectStructureType(body, basePath)
 
       // 提取优点摘要
       const strengths = extractStrengths(highlights, detectedTechniques)
@@ -148,26 +151,26 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
 
 // 加载或生成索引
 function loadOrBuildIndex(outputDir: string, basePath: string): ArticleIndex {
-  const indexPath = join(outputDir, '.article-index.json')
+  const indexPath = path.join(outputDir, '.article-index.json')
 
   // 检查缓存
-  if (existsSync(indexPath)) {
+  if (fs.existsSync(indexPath)) {
     try {
-      const cached = JSON.parse(readFileSync(indexPath, 'utf-8')) as ArticleIndex
+      const cached = JSON.parse(fs.readFileSync(indexPath, 'utf-8')) as ArticleIndex
 
       // 检查是否需要更新
       let needsUpdate = false
       const cachedFiles = new Set(cached.articles.map(a => a.filename))
       const cachedTimes = new Map(cached.articles.map(a => [a.filename, a.fileModified]))
 
-      const files = readdirSync(outputDir).filter(f => f.endsWith('.txt') && !f.startsWith('_'))
+      const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.txt') && !f.startsWith('_'))
 
       for (const f of files) {
         if (!cachedFiles.has(f)) {
           needsUpdate = true
           break
         }
-        const stat = statSync(join(outputDir, f))
+        const stat = fs.statSync(path.join(outputDir, f))
         if (stat.mtime.getTime() > (cachedTimes.get(f) || 0)) {
           needsUpdate = true
           break
@@ -182,7 +185,7 @@ function loadOrBuildIndex(outputDir: string, basePath: string): ArticleIndex {
 
   // 生成新索引
   const index = buildIndex(outputDir, basePath)
-  writeFileSync(indexPath, JSON.stringify(index, null, 2), 'utf-8')
+  fs.writeFileSync(indexPath, JSON.stringify(index, null, 2), 'utf-8')
   return index
 }
 
@@ -192,11 +195,11 @@ function extractMetaphors(body: string): string[] {
   const metaphors: string[] = []
   // 简单的隐喻提取模式
   const patterns = [
-    /像([^,.,.]{1, 6})/g,
-    /如([^,.,.]{1, 6})/g,
-    /似([^,.,.]{1, 6})/g,
-    /是一把([^,.,.]{1, 8})/g,
-    /是一座([^,.,.]{1, 8})/g
+    /像([^,.]{1,6})/g,
+    /如([^,.]{1,6})/g,
+    /似([^,.]{1,6})/g,
+    /是一把([^,.]{1,8})/g,
+    /是一座([^,.]{1,8})/g
   ]
 
   for (const pattern of patterns) {
@@ -212,20 +215,43 @@ function extractMetaphors(body: string): string[] {
   return metaphors.slice(0, 4)
 }
 
-function detectStructureType(body: string): string {
+function detectStructureType(body: string, basePath: string): string {
   const paragraphs = body.split('\n\n').filter(p => p.trim().length > 10)
   if (paragraphs.length < 3) return "短篇"
 
+  // 从 structure-patterns.json 加载扩展词表，回退到文件中的 seedWords，再到硬编码默认值
+  let 转折词: string[] = ["但", "但是", "然而", "可是", "不过"]
+  let 时间标记: string[] = ["记得", "那天", "那年", "小时候", "那时候"]
+  let 排比词: string[] = ["没有", "不必", "不要"]
+
+  const structPath = path.join(basePath, ".opencode", "lexicon", "structure-patterns.json")
+  if (fs.existsSync(structPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(structPath, "utf-8"))
+      if (data.patterns) {
+        const p = data.patterns
+        if (p["转折词"]) 转折词 = p["转折词"].expandedWords || p["转折词"].seedWords || 转折词
+        if (p["时间标记"]) 时间标记 = p["时间标记"].expandedWords || p["时间标记"].seedWords || 时间标记
+        if (p["排比词"]) 排比词 = p["排比词"].expandedWords || p["排比词"].seedWords || 排比词
+      }
+    } catch (_) {
+      // 文件损坏，使用硬编码默认值
+    }
+  }
+
   // 检查是否有大量转折
-  const butCount = (body.match(/但|但是|然而|可是|不过/g) || []).length
+  const butRegex = new RegExp(转折词.join("|"), "g")
+  const butCount = (body.match(butRegex) || []).length
   if (butCount >= paragraphs.length / 2) return "螺旋递进"
 
-  // 检查是否有大量场景化描写
-  const timeMarkers = body.match(/记得|那天|那年|小时候|那时候/g) || []
+  // 检查是否有大量场景化/回忆式描写
+  const timeRegex = new RegExp(时间标记.join("|"), "g")
+  const timeMarkers = body.match(timeRegex) || []
   if (timeMarkers.length >= 3) return "回忆式"
 
-  // 检查是否有并列结构
-  const parallelCount = (body.match(/没有|不必|不要/g) || []).length
+  // 检查是否有并列/排比结构
+  const parallelRegex = new RegExp(排比词.join("|"), "g")
+  const parallelCount = (body.match(parallelRegex) || []).length
   if (parallelCount >= 3) return "排比推进"
 
   return "线性展开"
@@ -368,7 +394,7 @@ function matchArticles(
 function formatOutput(matches: MatchResult[], mode: string, topic: string, totalArticles: number): string {
   const lines: string[] = []
 
-  lines.push(`『 范文推荐 —— 主题:${topic || "全部分类"} 』`)
+  lines.push(`[范文推荐 —— 主题:${topic || "全部分类"}]`)
   lines.push(`[统计] 共检索 ${totalArticles} 篇文章, 匹配 ${matches.length} 篇`)
   lines.push('')
 
@@ -443,6 +469,126 @@ function formatOutput(matches: MatchResult[], mode: string, topic: string, total
   return lines.join('\n')
 }
 
+// ============== 词库自动更新（内置于推荐工具，使用哈工大同义词词林扩展版） ==============
+
+interface CilinGroup {
+  words: string[]
+}
+
+function parseCilinGroups(cilinFile: string): CilinGroup[] {
+  const text = fs.readFileSync(cilinFile, "utf-8")
+  return text.split("\n")
+    .filter(l => l.trim().length > 0)
+    .map(line => {
+      const sepMatch = line.match(/^[A-Za-z0-9]+([=#@])\s*(.+)$/)
+      if (!sepMatch) return null
+      return { words: [...new Set(sepMatch[2].split(/\s+/).filter(w => w.length > 0))] }
+    })
+    .filter((g): g is CilinGroup => g !== null)
+}
+
+function updateLexiconFromCilin(basePath: string): string[] {
+  const lexiconDir = path.join(basePath, ".opencode", "lexicon")
+  const cilinFile = path.join(lexiconDir, "cilin.txt")
+  if (!fs.existsSync(cilinFile)) return ["跳过: cilin.txt 不存在 (需先下载)"]
+
+  const groups = parseCilinGroups(cilinFile)
+
+  const messages: string[] = []
+  const minConsensus = 2
+
+  // 更新 concept-mapping.json
+  const conceptPath = path.join(lexiconDir, "concept-mapping.json")
+  if (fs.existsSync(conceptPath)) {
+    const bakPath = conceptPath + ".bak"
+    if (!fs.existsSync(bakPath)) fs.copyFileSync(conceptPath, bakPath)
+
+    const data = JSON.parse(fs.readFileSync(conceptPath, "utf-8"))
+    let totalAdded = 0
+    for (const [, concept] of Object.entries(data.mappings) as any) {
+      const seedWords: string[] = [concept["核心词"], ...concept["同义词"], ...concept["近义词"], ...concept["相关词"]]
+      const seedSet = new Set(seedWords)
+      const existing = new Set(seedWords)
+      const found: string[] = []
+      for (const g of groups) {
+        const matched = g.words.filter(w => seedSet.has(w))
+        if (matched.length < minConsensus) continue
+        for (const w of g.words) {
+          if (!existing.has(w) && w.length >= 2 && w.length <= 4) { found.push(w); existing.add(w) }
+        }
+      }
+      if (found.length > 0) {
+        found.sort((a: string, b: string) => a.length - b.length || a.localeCompare(b))
+        concept["同义词"].push(...found.slice(0, 10))
+        totalAdded += Math.min(found.length, 10)
+      }
+    }
+    fs.writeFileSync(conceptPath, JSON.stringify(data, null, 2) + "\n", "utf-8")
+    messages.push(`概念映射: 新增 ${totalAdded} 个同义词`)
+  }
+
+  // 更新 topic-lexicon.json
+  const topicPath = path.join(lexiconDir, "topic-lexicon.json")
+  if (fs.existsSync(topicPath)) {
+    const bakPath = topicPath + ".bak"
+    if (!fs.existsSync(bakPath)) fs.copyFileSync(topicPath, bakPath)
+
+    const data = JSON.parse(fs.readFileSync(topicPath, "utf-8"))
+    let totalAdded = 0
+    for (const [, category] of Object.entries(data.categories) as any) {
+      const existing = new Set(category.keywords)
+      const found: string[] = []
+      for (const g of groups) {
+        const matched = g.words.filter(w => existing.has(w))
+        if (matched.length < minConsensus) continue
+        for (const w of g.words) {
+          if (!existing.has(w) && w.length >= 2 && w.length <= 4) { found.push(w); existing.add(w) }
+        }
+      }
+      if (found.length > 0) {
+        found.sort((a: string, b: string) => a.length - b.length || a.localeCompare(b))
+        category.keywords.push(...found.slice(0, 15))
+        totalAdded += Math.min(found.length, 15)
+      }
+    }
+    fs.writeFileSync(topicPath, JSON.stringify(data, null, 2) + "\n", "utf-8")
+    messages.push(`主题词库: 新增 ${totalAdded} 个关键词`)
+  }
+
+  // 更新 structure-patterns.json
+  const structPath = path.join(lexiconDir, "structure-patterns.json")
+  if (fs.existsSync(structPath)) {
+    const bakPath = structPath + ".bak"
+    if (!fs.existsSync(bakPath)) fs.copyFileSync(structPath, bakPath)
+
+    const data = JSON.parse(fs.readFileSync(structPath, "utf-8"))
+    let totalAdded = 0
+    for (const [, pattern] of Object.entries(data.patterns) as any) {
+      const seedSet = new Set(pattern.seedWords)
+      const existing = new Set(pattern.seedWords)
+      const found: string[] = []
+      for (const g of groups) {
+        const matched = g.words.filter(w => seedSet.has(w))
+        if (matched.length < minConsensus) continue
+        for (const w of g.words) {
+          if (!existing.has(w) && w.length >= 2 && w.length <= 4) { found.push(w); existing.add(w) }
+        }
+      }
+      if (found.length > 0) {
+        found.sort((a: string, b: string) => a.length - b.length || a.localeCompare(b))
+        pattern.expandedWords = [...pattern.seedWords, ...found.slice(0, 20)]
+        totalAdded += Math.min(found.length, 20)
+      } else {
+        pattern.expandedWords = [...pattern.seedWords]
+      }
+    }
+    fs.writeFileSync(structPath, JSON.stringify(data, null, 2) + "\n", "utf-8")
+    messages.push(`结构模式: 新增 ${totalAdded} 个扩展词`)
+  }
+
+  return messages
+}
+
 // ============== 工具入口 ==============
 
 export default tool({
@@ -455,20 +601,30 @@ export default tool({
     techniques: tool.schema.array(tool.schema.string()).optional().describe("指定需要学习的技法, 如:['螺旋结构', '细节锚定']. 仅推荐使用了指定技法的文章."),
     categories: tool.schema.array(tool.schema.string()).optional().describe("指定主题分类, 如:['家庭与亲情', '互联网与文化']."),
     rebuildIndex: tool.schema.boolean().default(false).describe("强制重建文章索引, 默认 false."),
+    updateLexicon: tool.schema.boolean().default(true).describe("使用哈工大同义词词林扩展版扩充词库后执行推荐."),
   },
   async execute(args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()
-    const outputDir = join(base.replace(/[\\/]+$/, ""), "output")
+    const outputDir = path.join(base.replace(/[\\/]+$/, ""), "output")
 
-    if (!existsSync(outputDir)) {
+    if (!fs.existsSync(outputDir)) {
       return "output/ 目录不存在, 请先完成至少一篇文章的写作."
+    }
+
+    // 如果指定了词库更新，用 Cilin 扩充词库后再执行推荐
+    const updateMessages: string[] = []
+    if (args.updateLexicon) {
+      const msgs = updateLexiconFromCilin(base)
+      updateMessages.push(...msgs)
+      // 词库变更后需要强制重建索引
+      args.rebuildIndex = true
     }
 
     // 强制重建索引
     if (args.rebuildIndex) {
-      const indexPath = join(outputDir, '.article-index.json')
-      if (existsSync(indexPath)) {
-        writeFileSync(indexPath, '', 'utf-8') // 清空缓存
+      const indexPath = path.join(outputDir, '.article-index.json')
+      if (fs.existsSync(indexPath)) {
+        fs.writeFileSync(indexPath, '', 'utf-8') // 清空缓存
       }
     }
 
@@ -510,6 +666,14 @@ export default tool({
       )
     }
 
-    return formatOutput(matches, mode, topic, totalArticles)
+    const result = formatOutput(matches, mode, topic, totalArticles)
+
+    // 词库更新信息附加到输出开头
+    if (updateMessages.length > 0) {
+      const header = "[词库更新]\n" + updateMessages.map(m => "  " + m).join("\n") + "\n\n"
+      return header + result
+    }
+
+    return result
   }
 })

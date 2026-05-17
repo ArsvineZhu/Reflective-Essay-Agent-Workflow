@@ -78,7 +78,7 @@ export function loadLexicon(basePath: string): Lexicon {
     const stopWordsData = JSON.parse(
       readFileSync(join(lexiconDir, 'stop-words.json'), 'utf-8')
     )
-    const stopWords = new Set(stopWordsData.all || [])
+    const stopWords = new Set<string>(stopWordsData.all || [])
 
     // 主题词库
     const topicLexicon: Lexicon["topicLexicon"] = JSON.parse(
@@ -109,16 +109,16 @@ export function loadLexicon(basePath: string): Lexicon {
     }
     cachePath = lexiconDir
 
-    return lexiconCache
+    return lexiconCache!
   } catch (e) {
     console.error('词库加载失败:', e)
     // 返回空的默认词库
     return {
-      stopWords: new Set(),
-      topicLexicon: { categories: {} },
-      techniqueLexicon: { techniques: {} },
-      conceptMapping: { mappings: {} },
-      issuePatterns: { issueCategories: {} }
+      stopWords: new Set<string>(),
+      topicLexicon: { name: '', version: '', description: '', categories: {} },
+      techniqueLexicon: { name: '', version: '', description: '', techniques: {} },
+      conceptMapping: { name: '', version: '', description: '', mappings: {}, crossCategory: {} },
+      issuePatterns: { name: '', version: '', description: '', issueCategories: {} }
     }
   }
 }
@@ -327,7 +327,7 @@ export function simpleChineseSegment(text: string, stopWords: Set<string>): stri
   for (let len = 4; len >= 2; len--) {
     for (let i = 0; i + len <= cleaned.length; i++) {
       const word = cleaned.substring(i, i + len)
-      if (/^[一-龥]{2, 4}$/.test(word) && !stopWords.has(word)) {
+      if (/^[一-龥]{2,4}$/.test(word) && !stopWords.has(word)) {
         words.push(word)
       }
     }

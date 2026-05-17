@@ -30,7 +30,7 @@ function nextReaderNumber(base: string): string {
 const VALID_LEVELS = ["高", "中", "低"]
 
 export default tool({
-  description: "写入读者读后感. 自动编号 (扫描 tmp/ 下已有 reader-NNN.json), 返回文件路径和摘要行. 读者必须使用此工具, 禁止手动写文件.",
+  description: "写入读者读后感, 返回文件路径和摘要行. 读者必须使用此工具, 禁止手动写文件.",
   args: {
     article: tool.schema.string().describe(
       "文章路径, 如 `./output/xxx.txt`. 读者已读取该文件, 此参数用于记录来源."
@@ -42,18 +42,13 @@ export default tool({
       "打动你或让你质疑的原文引用. 逐句摘录, 每句一条. 优先选让你停下来, 让你鼻子一酸, 让你想反驳的句子. 可选, 但建议至少 1-2 条."
     ),
     highlights: tool.schema.array(tool.schema.string()).describe(
-    highlights: tool.schema.array(tool.schema.string()).describe(
-      "[必填] 文章亮点列表. 每条必须: 明确指出哪个部分好 + 具体好在哪里. 例如: '编辑低头看下一篇稿子的细节 -- 用动作留白代替情绪描写', '深夜便利店场景 -- 用具体单位锚住抽象情感'. 至少 2 条."
+      "文章亮点列表. 每条必须: 明确指出哪个部分好 + 具体好在哪里. 例如: '编辑低头看下一篇稿子的细节 -- 用动作留白代替情绪描写', '深夜便利店场景 -- 用具体单位锚住抽象情感'. 至少 2 条."
     ),
     weaknesses: tool.schema.array(tool.schema.string()).describe(
-      "[必填] 文章缺点列表. 每条必须: 明确指出哪个部分有问题 + 具体为什么有问题. 例如: '三段叙事结构完全一致 -- 削弱了情感递增效果', '结尾金句设计感太强 -- 与全文朴素语气产生裂缝'. 至少 2 条, 没有明显缺点也要写可改进之处."
-    ),
+      "文章缺点列表. 每条必须: 明确指出哪个部分有问题 + 具体为什么有问题. 例如: '三段叙事结构完全一致 -- 削弱了情感递增效果', '结尾金句设计感太强 -- 与全文朴素语气产生裂缝'. 至少 2 条, 没有明显缺点也要写可改进之处."
     ),
     free_response: tool.schema.string().optional().describe(
       "自由感受补充. 简短写下读完的直觉感受或联想到的个人经历. 不要长篇大论, 3 句话以内."
-    ),
-    touching_points: tool.schema.array(tool.schema.string()).optional().describe(
-      "打动你的段落/句子简述. 简要说明哪个具体场景或句子触动了你, 以及为什么."
     ),
     touching_points: tool.schema.array(tool.schema.string()).optional().describe(
       "打动你的段落/句子简述. 简要说明哪个具体场景或句子触动了你, 以及为什么."
@@ -65,7 +60,7 @@ export default tool({
       "整体感受总结. 一句话概括读完后的核心感受, 10-20 字. 例如: '被击中了, 像是看了一把自己的日记', '有观察的起点但停在表面'."
     ),
     evaluation: tool.schema.string().describe(
-      "评价维度: 程度. 根据风格对应的维度填写, 如 `共情程度: 高`, `逻辑漏洞: 低`, `语言质感: 中`. 程度分三档: 高/中/低. 参考 reader.md 中的评价维度对照表."
+      "评价维度: 程度. 根据风格对应的维度填写, 如 `共情程度: 高`, `逻辑漏洞: 低`, `语言质感: 中`. 程度分三档: 高/中/低. 参考评价维度对照表."
     ),
     score: tool.schema.number().describe(
       "评分, 满分 100. 根据你的真实感受打分: 80+ 优秀, 60-79 合格, <60 有问题. 不必精确, 诚实即可."
