@@ -383,7 +383,7 @@ function formatOutput(matches: MatchResult[], mode: string, topic: string, total
   for (let i = 0; i < matches.length; i++) {
     const { article, matchReasons, matchedCategories, score } = matches[i]
 
-    lines.push(`=== 范文 ${i + 1}/${matches.length}:${article.title} (${article.score}分, 匹配度 ${Math.round(score * 100)}%) ===`)
+    lines.push(`=== 范文 ${i + 1}/${matches.length}:"${article.title}" (${article.score}分, 匹配度 ${Math.round(score * 100)}%) ===`)
     lines.push('')
 
     // 主题分类标签

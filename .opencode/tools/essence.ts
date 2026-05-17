@@ -41,7 +41,7 @@ interface ArticleEntry {
 export default tool({
   description: "高分优秀范文工具. 支持: 1) 按分数列出优秀文章列表; 2) 指定文章名获取完整原文; 3) 列出所有可用文章.",
   args: {
-    name: tool.schema.string().optional().describe("文章文件名（不含路径）, 如:'词的归处'. 指定后将返回该文章完整原文."),
+    name: tool.schema.string().optional().describe("文章文件名(不含路径), 如:'词的归处'. 指定后将返回该文章完整原文."),
     limit: tool.schema.number().default(3).describe("最多输出篇数, 默认 3 篇, 0 表示全部. 仅在不指定 name 时生效."),
     minScore: tool.schema.number().default(80).describe("最低入选分数, 默认 80 分."),
     list: tool.schema.boolean().default(false).describe("仅列出所有可用文章清单, 不显示内容."),
