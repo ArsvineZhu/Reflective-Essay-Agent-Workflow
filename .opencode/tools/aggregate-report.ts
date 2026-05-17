@@ -216,7 +216,7 @@ export default tool({
       // (95→0. 964, 90→0. 928, 85→0. 892, 80→0. 855) — penalizing but not
       // overwhelming. No threshold — smooth continuous function.
       const minCritic = Math.min(...criticScores)
-      const multiplier = Math.pow(minCritic / 100, 0. 7)
+      const multiplier = Math.pow(minCritic / 100, 0.7)
       return Math.round(avgReader * multiplier)
     })()
 
