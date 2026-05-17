@@ -31,6 +31,40 @@ const DEDUCTION_BASE = 5
 const REJECT_THRESHOLD = 40
 const SEVERE_SEVERITY_MIN = 4
 
+interface ComputedResult {
+  item: string
+  result: string
+  note: string
+  severity: number
+  occurrences: number
+  deduction: number
+}
+
+interface CriticReport {
+  report_type: string
+  verdict: string
+  score: number
+  deduction_detail: {
+    total_deduction: number
+    doubt_count: number
+    severe_reject: boolean
+    threshold_reject: boolean
+    threshold: number
+    items: ComputedResult[]
+  }
+  item_results: Array<{
+    item: string
+    result: string
+    severity: number
+    note: string
+    occurrences?: number
+  }>
+  common_errors?: Array<Record<string, unknown>>
+  danger_signals?: Array<Record<string, unknown>>
+  overall_assessment?: string
+  overall_recommendation?: string
+}
+
 export default tool({
   description: "写入批评家审查报告. 自动编号, 自动计算扣分和总分. 批评家必须使用此工具, 禁止手动写文件.",
   args: {
@@ -57,7 +91,7 @@ export default tool({
     let totalDeduction = 0
     let passCount = 0, doubtCount = 0, rejectCount = 0
     let severeReject = false
-    const computedResults: any[] = []
+    const computedResults: ComputedResult[] = []
 
     for (const item of args.item_results) {
       const result = (item.result || "PASS").trim()
@@ -93,7 +127,7 @@ export default tool({
     const verdict = (severeReject || rejectByThreshold) ? "REJECT" : "PASS"
 
     // --- build report ---
-    const report: any = {
+    const report: CriticReport = {
       report_type: args.report_type,
       verdict,
       score,

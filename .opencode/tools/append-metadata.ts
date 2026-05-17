@@ -51,7 +51,7 @@ export default tool({
     abstract: tool.schema.string().optional().describe("文章摘要"),
     highlights: tool.schema.array(tool.schema.string()).optional().describe("精彩句子/金句点评列表"),
     approach: tool.schema.string().optional().describe("创作方法与过程"),
-    topic: tool.schema.string().optional().describe("命题原文、分析理解与切入角度"),
+    topic: tool.schema.string().optional().describe("命题原文, 分析理解与切入角度"),
   },
   async execute(args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()

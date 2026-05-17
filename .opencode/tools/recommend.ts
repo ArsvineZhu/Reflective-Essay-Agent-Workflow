@@ -240,7 +240,7 @@ function extractStrengths(
   // 技法亮点
   for (const tech of techniques) {
     if (tech.confidence >= 0.5) {
-      strengths.push(`运用「${tech.name}」技法: ${tech.evidence.join('、')}`)
+      strengths.push(`运用"${tech.name}"技法: ${tech.evidence.join(', ')}`)
     }
   }
 
@@ -323,7 +323,7 @@ function matchArticles(
     const matchReasons = [...topicMatch.matchReasons]
 
     if (article.techniques.length > 0) {
-      matchReasons.push(`使用技法: ${article.techniques.slice(0, 2).map(t => t.name).join('、')}`)
+      matchReasons.push(`使用技法: ${article.techniques.slice(0, 2).map(t => t.name).join(', ')}`)
     }
 
     if (totalScore > 0.1 || topicInput.length === 0) {
@@ -396,7 +396,7 @@ function formatOutput(matches: MatchResult[], mode: string, topic: string, total
 
     // 核心意象
     if (article.metaphors.length > 0) {
-      lines.push(`[核心意象] ${article.metaphors.join('、')}`)
+      lines.push(`[核心意象] ${article.metaphors.join(', ')}`)
     }
 
     // 匹配理由
