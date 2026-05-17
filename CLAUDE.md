@@ -192,6 +192,12 @@ Decision point:
 
 Kaltsit must select at least 1 per category; can select more based on article theme.
 
+## Code & Configuration Guidelines
+
+- **Punctuation in code/config files**: Minimize Chinese-specific quotation marks (「」『』) in all configuration files, markdown documentation, and code.
+- **Quote style**: Use English double quotes "" uniformly. A space must follow the closing quote only if content follows (example: "quote", not "quote").
+- **Spacing rule**: All English punctuation (, . : ; () "" '' ? !) must be followed by a space **only if there is more content after the punctuation**. No trailing space at end of line.
+
 ## Tool Runtime
 
 - Runtime: **Bun** (for all `.ts` tools in `.opencode/tools/`)

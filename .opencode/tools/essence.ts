@@ -69,7 +69,7 @@ export default tool({
         if (matches.length === 1) {
           const exactFp = join(outputDir, matches[0])
           const text = readFileSync(exactFp, 'utf-8')
-          return `『 ${matches[0]} 』\n\n${text}`
+          return `==== ${matches[0]} ====\n\n${text}`
         } else if (matches.length > 1) {
           return `找到 ${matches.length} 篇匹配的文章:\n${matches.map(m => `  - ${m}`).join('\n')}\n\n请指定更精确的文件名.`
         }
@@ -78,7 +78,7 @@ export default tool({
       }
 
       const text = readFileSync(fp, 'utf-8')
-      return `『 ${fname} 』\n\n${text}`
+      return `==== ${fname} ====\n\n${text}`
     }
 
     // 读取所有文章
@@ -122,7 +122,7 @@ export default tool({
       if (entries.length === 0) return "output/ 目录下暂无文章"
 
       const lines: string[] = []
-      lines.push(`『 文章清单 (共 ${entries.length} 篇) 』`)
+      lines.push(`==== 文章清单 (共 ${entries.length} 篇) ====`)
       lines.push('')
       lines.push(`${'分数'.padStart(4)}  ${visPad('标题', 20)}  ${'文件名'}`)
       lines.push('-'.repeat(60))
@@ -144,7 +144,7 @@ export default tool({
     }
 
     const lines: string[] = []
-    lines.push(`『 高分优秀范文 (≥${minScore}分, 共 ${display.length}/${filtered.length} 篇) 』`)
+    lines.push(`==== 高分优秀范文 (≥${minScore}分, 共 ${display.length}/${filtered.length} 篇) ====`)
     lines.push('')
     lines.push(`${'排名'.padStart(4)}  ${'分数'.padStart(4)}  ${visPad('标题', 20)}  文件`)
     lines.push('-'.repeat(60))
