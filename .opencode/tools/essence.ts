@@ -74,7 +74,7 @@ export default tool({
           return `找到 ${matches.length} 篇匹配的文章:\n${matches.map(m => `  - ${m}`).join('\n')}\n\n请指定更精确的文件名.`
         }
 
-        return `未找到文件:${fname}\n\n可用文章:\n${files.map(f => `  - ${f}`).join('\n')}`
+        return `未找到文件: ${fname}\n\n可用文章:\n${files.map(f => `  - ${f}`).join('\n')}`
       }
 
       const text = readFileSync(fp, 'utf-8')
@@ -140,7 +140,7 @@ export default tool({
 
     const display = limit === 0 ? filtered : filtered.slice(0, Math.min(limit, filtered.length))
     if (display.length === 0) {
-      return `output/ 目录下暂无评分 >= ${minScore} 分的文章\n当前有 ${entries.length} 篇文章, 分数范围:${entries.length > 0 ? Math.min(...entries.map(e => e.score)) + '-' + Math.max(...entries.map(e => e.score)) : '无'}`
+      return `output/ 目录下暂无评分 >= ${minScore} 分的文章\n当前有 ${entries.length} 篇文章, 分数范围: ${entries.length > 0 ? Math.min(...entries.map(e => e.score)) + '-' + Math.max(...entries.map(e => e.score)) : '无'}`
     }
 
     const lines: string[] = []

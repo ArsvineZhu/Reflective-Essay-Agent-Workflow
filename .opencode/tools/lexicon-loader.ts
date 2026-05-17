@@ -6,16 +6,60 @@
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
-let lexiconCache: any = null
+let lexiconCache: Lexicon | null = null
 let cachePath: string = ''
 
 // 词库类型
 export interface Lexicon {
   stopWords: Set<string>
-  topicLexicon: any
-  techniqueLexicon: any
-  conceptMapping: any
-  issuePatterns: any
+  topicLexicon: {
+    name: string
+    version: string
+    description: string
+    categories: Record<string, {
+      name: string
+      keywords: string[]
+      weight: number
+    }>
+  }
+  techniqueLexicon: {
+    name: string
+    version: string
+    description: string
+    techniques: Record<string, {
+      name: string
+      description: string
+      keywords: string[]
+      indicators: string[]
+      weight: number
+    }>
+  }
+  conceptMapping: {
+    name: string
+    version: string
+    description: string
+    mappings: Record<string, {
+      "核心词": string
+      "同义词": string[]
+      "近义词": string[]
+      "相关词": string[]
+    }>
+    crossCategory: Record<string, string[]>
+  }
+  issuePatterns: {
+    name: string
+    version: string
+    description: string
+    issueCategories: Record<string, {
+      name: string
+      patterns: Array<{
+        name: string
+        keywords: string[]
+        severity: string
+        suggestion: string
+      }>
+    }>
+  }
 }
 
 /**
@@ -37,22 +81,22 @@ export function loadLexicon(basePath: string): Lexicon {
     const stopWords = new Set(stopWordsData.all || [])
 
     // 主题词库
-    const topicLexicon = JSON.parse(
+    const topicLexicon: Lexicon["topicLexicon"] = JSON.parse(
       readFileSync(join(lexiconDir, 'topic-lexicon.json'), 'utf-8')
     )
 
     // 技法词库
-    const techniqueLexicon = JSON.parse(
+    const techniqueLexicon: Lexicon["techniqueLexicon"] = JSON.parse(
       readFileSync(join(lexiconDir, 'technique-lexicon.json'), 'utf-8')
     )
 
     // 概念映射
-    const conceptMapping = JSON.parse(
+    const conceptMapping: Lexicon["conceptMapping"] = JSON.parse(
       readFileSync(join(lexiconDir, 'concept-mapping.json'), 'utf-8')
     )
 
     // 问题模式
-    const issuePatterns = JSON.parse(
+    const issuePatterns: Lexicon["issuePatterns"] = JSON.parse(
       readFileSync(join(lexiconDir, 'issue-patterns.json'), 'utf-8')
     )
 
@@ -92,17 +136,17 @@ export function expandKeywordsWithConcepts(
   for (const conceptName of Object.keys(lexicon.conceptMapping.mappings)) {
     const concept = lexicon.conceptMapping.mappings[conceptName]
     const hasMatch = keywords.some(k =>
-      concept. 同义词.includes(k) ||
-      concept. 近义词.includes(k) ||
-      concept. 相关词.includes(k) ||
-      concept. 核心词 === k
+      concept["同义词"].includes(k) ||
+      concept["近义词"].includes(k) ||
+      concept["相关词"].includes(k) ||
+      concept["核心词"] === k
     )
 
     if (hasMatch) {
       // 扩展整个概念的所有词
-      concept. 同义词.forEach((w: string) => expanded.add(w))
-      concept. 近义词.forEach((w: string) => expanded.add(w))
-      concept. 相关词.forEach((w: string) => expanded.add(w))
+      concept["同义词"].forEach((w: string) => expanded.add(w))
+      concept["近义词"].forEach((w: string) => expanded.add(w))
+      concept["相关词"].forEach((w: string) => expanded.add(w))
     }
   }
 
@@ -142,7 +186,7 @@ export function calculateTopicMatchScore(
       totalScore += matchScore
       matchedCount++
       matchedCategories.push(category.name)
-      matchReasons.push(`${category.name}匹配: ${intersection.slice(0, 3).join('、')}`)
+      matchReasons.push(`${category.name}匹配: ${intersection.slice(0, 3).join(', ')}`)
     }
   }
 

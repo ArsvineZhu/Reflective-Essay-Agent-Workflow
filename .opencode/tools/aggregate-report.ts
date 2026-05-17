@@ -211,9 +211,9 @@ export default tool({
       if (readerScores.length === 0) return null
       const avgReader = readerScores.reduce((a, b) => a + b, 0) / readerScores.length
       if (criticScores.length === 0) return Math.round(avgReader)
-      // Non-linear penalty: use the lowest critic score with ^0. 7 curve.
-      // A perfect 100 → multiplier 1. 0 (no penalty). The curve is gentle
-      // (95→0. 964, 90→0. 928, 85→0. 892, 80→0. 855) — penalizing but not
+      // Non-linear penalty: use the lowest critic score with ^0.7 curve.
+      // A perfect 100 → multiplier 1.0 (no penalty). The curve is gentle
+      // (95→0.964, 90→0.928, 85→0.892, 80→0.855) — penalizing but not
       // overwhelming. No threshold — smooth continuous function.
       const minCritic = Math.min(...criticScores)
       const multiplier = Math.pow(minCritic / 100, 0.7)
