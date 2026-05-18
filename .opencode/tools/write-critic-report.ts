@@ -149,8 +149,8 @@ export default tool({
     const deductions: DeductionEntry[] = computedResults
       .filter(r => r.result !== "PASS")
       .map((r, i) => ({
-        id: r.item.split(" ")[0],
-        content: r.note,
+        id: (r.item.split(" ")[0]) || "UNKNOWN",
+        content: r.note || "",
         severity: mapSeverity(r.severity),
         citation: r.citation,
       }))
@@ -194,7 +194,7 @@ export default tool({
     // --- build summary line ---
     const issueBrief = computedResults
       .filter(r => r.occurrences > 0)
-      .map(r => `${r.item.split(" ")[0]}${r.occurrences}`)
+      .map(r => `${(r.item.split(" ")[0]) || "?"}${r.occurrences}`)
       .join(" ")
 
     const summaryLine = `tmp/${filename} | PASS: ${passCount} | DOUBT: ${doubtCount} | REJECT: ${rejectCount} | ${issueBrief || "无问题"}`

@@ -16,7 +16,7 @@ function isAbsolute(p: string): boolean {
 function parseCriticSummary(line: string): { id: string; verdict: string; doubts: string; note: string } | null {
   const parts = line.split("|").map(s => s.trim())
   if (parts.length < 4) return null
-  const filename = path.basename(parts[0], path.extname(parts[0])).replace(/\..*$/, "")
+  const filename = path.basename(parts[0] || "", path.extname(parts[0] || "")).replace(/\..*$/, "")
   // parts[1] = "PASS: N", parts[2] = "DOUBT: N", parts[3] = "REJECT: N"
   const rejectCount = parseInt(parts[3]?.replace("REJECT:", "").trim() || "0", 10)
   const verdict = rejectCount > 0 ? "REJECT" : "PASS"
@@ -109,7 +109,9 @@ function renderReaderJson(content: string): string {
     if (data.metadata_highlights && data.metadata_highlights.length > 0) {
       result.push("\n")
       for (const h of data.metadata_highlights) {
-        result.push(`\n> "${h.citation}"`)
+        if (h.citation) {
+          result.push(`\n> "${h.citation}"`)
+        }
       }
     }
 

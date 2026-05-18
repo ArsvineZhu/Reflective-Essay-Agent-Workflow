@@ -301,63 +301,57 @@ Kaltsit 从 5 个类别中每个至少选择 1 个读者：
 ```
 archive/
 ├── 2026-05-13-2257/
-│   ├── 都是为了你好_v2.txt       # 终稿（含元数据区块）
-│   ├── research-brief.md          # 原始简报
-│   ├── review-report.md           # 审校报告
-│   ├── review-001.json            # 原创性检查
-│   ├── review-002.json            # 结构检查
-│   ├── review-003.json            # 文风检查
-│   ├── reader-001.json            # 读者 1（感性）
-│   ├── reader-002.json            # 读者 2（理性）
-│   ├── reader-003.json            # 读者 3（语言）
-│   ├── reader-004.json            # 读者 4（体验）
-│   ├── reader-005.json            # 读者 5（安全）
-│   └── revision-notes.md          # 修改说明（如有）
-├── 2026-05-14-2352/
-│   └── ...
-├── 2026-05-15-1326/
-│   └── ...
-├── 2026-05-15-2154/
-│   └── 月亮不必每夜都圆.txt
-│       ...
-└── 2026-05-16-1618/
-    ├── 词的归处.txt              # 终稿（含元数据区块）
-    ├── research-brief.md          # 原始简报
-    ├── review-report.md           # 审校报告
-    ├── _all-analysis.md           # 六份参考源技法汇总
-    ├── review-001.json            # 原创性检查
-    ├── review-002.json            # 结构检查
-    ├── review-003.json            # 文风检查
-    ├── reader-001.json ~ 010.json # 读者感受（两轮 10 份）
-    └── revision-notes.md          # 修改说明（如有）
+│   ├── 评论区没有中间.txt          # 终稿
+│   ├── research-brief.md           # 原始简报
+│   ├── review-report.md            # 审校报告
+│   └── reader-*.txt / review-*.txt # 早期审校（.txt 格式）
+├── ...
+└── 2026-05-17-1727/
+    ├── 看下去.txt                  # 终稿
+    ├── research-brief.md           # 原始简报
+    ├── review-report.md            # 审校报告
+    ├── _all-analysis.md            # 参考源技法汇总
+    ├── review-001.json ~ 005.json  # 批评家审查
+    ├── reader-001.json ~ 010.json  # 读者感受（两轮）
+    └── revision-notes.md           # 修改说明（如有）
 ```
 
 `tmp/` 在下一会话启动时清空。`archive/` 永久保存。
 
 ### 元数据格式
 
-终稿文件末尾附加标准元数据区块，Priestess 在交付阶段调用 `append-metadata` 工具追加。工具自动提取标题与字数，从 `tmp/review-report.md` 读取综合评分：
+元数据以独立 JSON 文件 `output/<文章名>.meta.json` 存储，Priestess 在交付阶段调用 `append-metadata` 工具生成。工具自动提取标题与字数，从 `tmp/review-report.md` 读取综合评分：
 
+```json
+{
+  "title": "文章标题",
+  "score": 87,
+  "deductions": [
+    { "id": "B2", "content": "螺旋结构不够自然", "severity": "medium" }
+  ],
+  "highlights": [
+    { "id": "H1", "content": "三个递进短句完成定性", "citation": "...", "technique": "递进式排比" }
+  ],
+  "wordCount": 1234,
+  "requiredWords": "1200",
+  "abstract": "...",
+  "approach": "...",
+  "topic": {
+    "original": "...",
+    "keywords": ["家庭关系", "愧疚"],
+    "analysis": "..."
+  }
+}
 ```
----
-Title: "..."
-Score: <0-100>
-Reason for deduction: [ "...", "..." ]
-Word Count: <N> - Required: <N|Unspec>
-Abstract: { ... }
-Highlight: [ "...", "...", "..." ]
-Approach: { ... }
-Topic: { ... }
-```
 
-- `Score` — 综合读者评分平均值或审校报告参考分数（自动读取）
-- `Reason for deduction` — 扣分理由及违背的原则（由代理参看评审反馈填写）
-- `Word Count` — 工具自动统计（排除标题和元数据）
-- `Highlight` — 对金句/好句的点评（非摘录），分析作用与位置
-- `Approach` — 创作过程、研究路径与写作决策
-- `Topic` — 命题原文、分析理解与切入角度
+- `score` — 综合读者评分平均值或审校报告参考分数（自动读取），字数偏差超过 10% 自动扣 5 分
+- `deductions` — 扣分理由及违背的原则（由批评家提供）
+- `wordCount` — 工具自动统计（排除标题）
+- `highlights` — 对金句/好句的点评（非摘录），分析作用与位置
+- `approach` — 创作过程、研究路径与写作决策
+- `topic` — 命题原文、分析理解与切入角度
 
-上述元数据由 aggregate-report 工具的 `overall_brief` 字段和读者评分等提供结构支撑。
+上述元数据由 aggregate-report 工具的输出和审校报告等提供结构支撑。
 
 ---
 
@@ -471,7 +465,7 @@ Topic: { ... }
 
 - **append-metadata 工具**
   - 使用者：Priestess
-  - 用途：在文章末尾追加标准元数据区块
+  - 用途：生成独立的元数据 JSON 文件
 
 - **archive 工具**
   - 使用者：Priestess

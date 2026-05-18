@@ -35,7 +35,7 @@ interface ArticleMetadata {
   highlights?: Array<{
     id: string
     content: string
-    citation: string
+    citation?: string
     technique?: string
   }>
   wordCount: number
@@ -125,7 +125,7 @@ export default tool({
 
           // 格式化高亮与扣分内容用于显示
           const highlightStr = (meta.highlights ?? []).length > 0
-            ? JSON.stringify((meta.highlights ?? []).map(h => ({ id: h.id, content: h.content, citation: h.citation.substring(0, 50) })), null, 2)
+            ? JSON.stringify((meta.highlights ?? []).map(h => ({ id: h.id, content: h.content, citation: (h.citation ?? '').substring(0, 50) })), null, 2)
             : ''
 
           const deductionStr = (meta.deductions ?? []).length > 0

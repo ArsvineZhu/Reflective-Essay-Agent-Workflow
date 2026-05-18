@@ -35,7 +35,6 @@ export default tool({
   description: "归档完成文章. 创建 archive/YYYY-MM-DD-HHMM/ 目录, 将 output/ 终稿和 tmp/ 所有审校/简报/读者文件一并复制过去, 然后清理 tmp/.",
   args: {
     article: tool.schema.string().describe("文章终稿路径, 如 output/xxx.txt"),
-    countResult: tool.schema.string().optional().describe("count 工具返回的字数结果, 自动填入元数据"),
   },
   async execute(args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()
@@ -58,6 +57,13 @@ export default tool({
     const articleDest = path.join(archiveDir, articleName)
     if (tryCopy(articlePath, articleDest)) {
       copied.push(articleName)
+    }
+
+    // 1.5 Copy metadata JSON (if exists)
+    const metaPath = articlePath.endsWith('.txt') ? articlePath.replace(/\.txt$/, ".meta.json") : articlePath + ".meta.json"
+    const metaName = articleName.endsWith('.txt') ? articleName.replace(/\.txt$/, ".meta.json") : articleName + ".meta.json"
+    if (tryCopy(metaPath, path.join(archiveDir, metaName))) {
+      copied.push(metaName)
     }
 
     // 2. Copy tmp/research-brief.md

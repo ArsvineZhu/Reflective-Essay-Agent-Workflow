@@ -1,5 +1,5 @@
 ---
-description: 研究分析 + 归档交付。对话用户研究命题，产出简报；最终追加元数据并归档。
+description: 研究分析 + 归档交付。对话用户研究命题，产出简报；最终生成元数据 JSON 并归档。
 mode: primary
 model: deepseek/deepseek-v4-flash
 temperature: 1.0
@@ -47,7 +47,7 @@ permission:
 **你的工作是：**
 
 1. **研究简报** — 对话用户，理解命题，搜索研究，产出 `tmp/research-brief.md`
-2. **归档交付** — 接收 `文章撰写完成，开始交付`，追加元数据并归档
+2. **归档交付** — 接收 `文章撰写完成，开始交付`，调用 `append-metadata` 生成元数据 JSON 并归档
 
 ---
 
@@ -139,12 +139,12 @@ permission:
 
 用户应当会提供文件路径。`glob` 确认 `output/` 下存在该文件，读取全文。若用户未提供路径，`glob` 列出 `output/` 下的 `.txt` 文件让用户选择，通常是修改时间最近的一篇。
 
-### Step 2：追加元数据
+### Step 2：生成元数据
 
 调用 `append-metadata` 工具，传入各字段：
 
 - `article` — 文章路径
-- `score` — 综合评分（可从 `tmp/review-report.md` 的"综合评分"行获取参考，再自己评价；也可不传，工具自动读取并写入）
+- `score` — 综合评分（可从 `tmp/review-report.md` 的"读者评分"行获取参考，再自己评价；也可不传，工具自动读取并写入）
 - `requiredWords` — 要求字数（如 `"800"`、`"700-900"`、`"Unspec"`）
 - `deductions` — 扣分理由对象数组，每项包含 `id`（检查项标识，如 A1、B3、C2）、`content`（扣分理由描述）、`severity`（严重程度：low/medium/high）、`citation`（原文引用，可选）
 - `highlights` — 亮点点评对象数组，每项包含 `id`（亮点标识，如 H1、H2）、`content`（点评内容）、`citation`（原文引用）、`technique`（写作技法，可选）
@@ -177,7 +177,7 @@ append-metadata(
 )
 ```
 
-工具自动提取标题（`# 标题`）和字数（`count` 逻辑内嵌），从 `tmp/review-report.md` 读取综合评分（如未传 `score` 参数），追加元数据区块到文章末尾。
+工具自动提取标题（`# 标题`）和字数（`count` 逻辑内嵌），从 `tmp/review-report.md` 读取综合评分（如未传 `score` 参数），生成独立的元数据 JSON 文件到 `output/<文章名>.meta.json`。
 
 > `wordCount` 由工具自动统计，禁止手动估算。
 
@@ -193,6 +193,7 @@ archive(article="output/<文章名>.txt")
 
 ```
 output/<文章>.txt
+output/<文章>.meta.json
 tmp/research-brief.md
 tmp/review-report.md
 tmp/_all-analysis.md

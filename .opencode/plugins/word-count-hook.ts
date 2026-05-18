@@ -7,10 +7,9 @@ function isAbsolute(p: string): boolean {
 }
 
 function countChinese(text: string): number {
-  const body = text.split('\n---')[0]
-  const withoutTitle = body.startsWith('# ') && body.includes('\n')
-    ? body.substring(body.indexOf('\n') + 1)
-    : body
+  const withoutTitle = text.startsWith('# ') && text.includes('\n')
+    ? text.substring(text.indexOf('\n') + 1)
+    : text
   const m = withoutTitle.match(/[\u4e00-\u9fff]/g)
   return m ? m.length : 0
 }

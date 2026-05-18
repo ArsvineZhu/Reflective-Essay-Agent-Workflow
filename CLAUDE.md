@@ -81,7 +81,7 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 
 | Agent | Mode | Model | Color | Role |
 |-------|------|-------|-------|------|
-| **Priestess** | primary | ds-v4-flash | `#b5d2e9` 淡蓝灰白 | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, appends metadata to finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
+| **Priestess** | primary | ds-v4-flash | `#b5d2e9` 淡蓝灰白 | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, generates metadata JSON for finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
 | **Esperanta** | primary | ds-v4-pro (max) | `#7CFF5E` 浅荧光绿 | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
 | **Kaltsit** | primary | ds-v4-flash | `#7CFF5E` 浅荧光绿 | Review orchestrator. Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
 | **critic-originality** | subagent | ds-v4-flash | — | Checks A1-A4: sentence reuse, material borrowing, metaphor overlap, ending similarity against `ref/` |
@@ -104,9 +104,9 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 - Kaltsit + subagents never write to `output/` (judge/writer separation)
 - Esperanta reads `tmp/` for context (`task()` does NOT carry conversation history)
 - `common.md` is auto-loaded via `prompt: "{file:./.opencode/prompts/common.md}"` frontmatter
-- Plugins fire automatically: `word-count-hook` on `write`/`edit` to `output/*.txt`, `classify-topic-hook` after any tool execution
+- Plugins fire automatically: `word-count-hook` on `write`/`edit` to `output/*.txt`
 - Subagent doubt count >= 2 → overall REJECT (review discipline)
-- Finished articles get a metadata block appended (Title/Score/Reason/WordCount/Abstract/Highlight/Approach/Topic)
+- Finished articles get a separate metadata JSON file (`output/<name>.meta.json`) with Title/Score/Reason/WordCount/Abstract/Highlight/Approach/Topic
 
 ### Reference Sources (`ref/`)
 
@@ -125,7 +125,7 @@ Each has an `analysis.md` that Esperanta must read via `load-references` tool be
 
 ### Thematic Lexicon (`.opencode/lexicon/`)
 
-7 files powering the `recommend` tool and `classify-topic-hook` plugin:
+7 files powering the `recommend` tool:
 
 | File | Type | Purpose |
 |------|------|---------|
@@ -144,9 +144,9 @@ Written in TypeScript, run via Bun. All tools are auto-discovered (no need to de
 | Tool | Caller | Purpose |
 |------|--------|---------|
 | `aggregate-report` | Kaltsit | Merge critic + reader reports into `tmp/review-report.md` |
-| `append-metadata` | Priestess | Append standard metadata block to finished article (auto-extract title/word-count, auto-read score) |
-| `archive` | Priestess | Archive final article + all intermediate files, clear `tmp/` |
-| `count` | Priestess / plugin | Count Chinese characters in `output/*.txt` (excludes title & metadata). Logic embedded in `word-count-hook` |
+| `append-metadata` | Priestess | Generate independent metadata JSON file `output/<name>.meta.json` (auto-extract title/word-count, auto-read score, optional word-count penalty) |
+| `archive` | Priestess | Archive final article + all intermediate files + `.meta.json`, clear `tmp/` |
+| `count` | Priestess / plugin | Count Chinese characters in `output/*.txt` (excludes title). Logic embedded in `word-count-hook` |
 | `essence` | Esperanta | **High-score article browser**. `essence()` → score >80 listing; `essence(list=true)` → all articles; `essence(name="filename")` → full text |
 | `load-references` | Esperanta | Load all 6 `analysis.md` → `tmp/_all-analysis.md` |
 | `recommend` | Esperanta | **Recommendation engine**: semantic topic matching + technique analysis. Args: `topic`, `limit`, `minScore`, `techniques`, `categories`, `updateLexicon` (uses Cilin to auto-expand lexicons). |
@@ -157,8 +157,7 @@ Written in TypeScript, run via Bun. All tools are auto-discovered (no need to de
 
 | Plugin | Trigger | Purpose |
 |--------|---------|---------|
-| `word-count-hook` | After every `write`/`edit` to `output/*.txt` | Counts Chinese characters (excluding metadata) and appends `[字数统计] N` to tool output |
-| `classify-topic-hook` | After every tool execution (debounced 1s) | Scans `output/*.txt` for articles with metadata but missing `Topic:` field → computes topic classification using lexicon → appends `Topic: { categories }` to file |
+| `word-count-hook` | After every `write`/`edit` to `output/*.txt` | Counts Chinese characters (excluding title) and appends `[字数统计] N` to tool output |
 
 ## Workflow Sequence
 
@@ -191,11 +190,11 @@ Decision point:
 - Style rules (auto-loaded): `.opencode/prompts/common.md`
 - Custom tools: `.opencode/tools/*.ts` (9 tools + 1 library module `lexicon-loader.ts`)
 - Lexicon databases: `.opencode/lexicon/` (7 files: cilin.txt + 6 JSON lexicons)
-- Output directory: `output/` (all articles as `.txt` with metadata blocks)
+- Output directory: `output/` (all articles as `.txt` with separate `.meta.json` metadata)
 - Temp context: `tmp/` (cleared between sessions)
-- Archives: `archive/YYYY-MM-DD-HHMM/` (5 archives)
+- Archives: `archive/YYYY-MM-DD-HHMM/` (6 archives)
 - Reference sources: `ref/*/`
-- Plugins: `.opencode/plugins/word-count-hook.ts`, `.opencode/plugins/classify-topic-hook.ts`
+- Plugins: `.opencode/plugins/word-count-hook.ts`
 - Config: `opencode.json`
 
 ## Reader Categories
@@ -225,19 +224,21 @@ Kaltsit must select at least 1 per category; can select more based on article th
 
 ## Article Metadata Format
 
-Finished articles have this block appended at the end by Priestess via `append-metadata` tool:
+Finished articles have a separate metadata JSON file at `output/<name>.meta.json`, generated by Priestess via `append-metadata` tool. The JSON contains:
 
-```
----
-Title: "..."
-Score: <0-100>
-Reason for deduction: [ "...", "..." ]
-Word Count: <N> - Required: <N|Unspec>
-Abstract: { ... }
-Highlight: [ "...", "...", "..." ]
-Approach: { ... }
-Topic: { ... }
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | Article title (extracted from `# Title`) |
+| `score` | number\|null | Comprehensive score (0-100, null if N/A) |
+| `deductions` | array | Deduction reasons with id/content/severity/citation |
+| `highlights` | array | Highlighted sentences with content/citation/technique |
+| `wordCount` | number | Chinese character count (excludes title) |
+| `requiredWords` | string | Required word count (e.g. `"1200"`, `"700-900"`, `"Unspec"`) |
+| `abstract` | string | Article summary |
+| `approach` | string | Creative process and writing decisions |
+| `topic` | object | `original` (topic text), `keywords` (categories), `analysis` (optional) |
+
+If `requiredWords` is a single number (e.g. "1200") or a range ("1000-1200") and actual word count deviates beyond 10% (or outside range), 5 points are deducted from score automatically.
 
 ## Style Principles (from `common.md`, summary)
 
@@ -307,5 +308,5 @@ ls .opencode/plugins/
 ### Important Files to Know
 - `.opencode/prompts/common.md` — Core style rules, auto-loaded into ALL agents
 - `.opencode/lexicon/` — 7 lexicon files: cilin.txt (Cilin), concept-mapping.json, topic-lexicon.json, technique-lexicon.json, issue-patterns.json, structure-patterns.json, stop-words.json
-- `.opencode/plugins/` — word-count-hook.ts (write/edit hook), classify-topic-hook.ts (post-tool hook)
+- `.opencode/plugins/` — word-count-hook.ts (write/edit hook)
 - `.opencode/commands/` — Custom command definitions

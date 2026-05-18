@@ -45,7 +45,7 @@ permission:
 | `article` | 文章路径，如 `./output/xxx.txt` | 是 |
 | `style` | 你的读者风格 | 是 |
 | `highlights` | **结构化对象数组**。每条包含：`content`（亮点描述）, `citation`（原文引用，选填）, `technique`（写作技法，可选） | 否 |
-| `weaknesses` | **结构化对象数组**。每条包含：`content`（问题描述）, `citation`（原文引用） | 否 |
+| `weaknesses` | **结构化对象数组**。每条包含：`content`（问题描述）, `citation`（原文引用，选填） | 否 |
 | `free_response` | 简短自由感受补充，3 句话以内 | 否 |
 | `ai_suspicion` | 觉得像 AI 的原因（数组） | 否 |
 | `overall_evaluation` | 整体感受总结 | 是 |

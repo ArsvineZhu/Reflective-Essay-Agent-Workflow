@@ -51,7 +51,7 @@ interface ArticleMetadata {
   highlights?: Array<{
     id: string
     content: string
-    citation: string
+    citation?: string
     technique?: string
   }>
   wordCount: number
@@ -112,7 +112,7 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
 
       // 从新结构提取高亮内容（用于技法识别）
       const highlightContents = (meta.highlights ?? []).map(h => h.content)
-      const highlightCitations = (meta.highlights ?? []).map(h => h.citation)
+      const highlightCitations = (meta.highlights ?? []).map(h => h.citation).filter((c): c is string => !!c)
 
       // 从新结构提取扣分内容（用于问题识别）
       const deductionContents = (meta.deductions ?? []).map(d => d.content)

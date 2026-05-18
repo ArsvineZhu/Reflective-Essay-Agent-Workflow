@@ -303,20 +303,25 @@ REJECT 批评者数量 > 0 → 整体 REJECT
 
 ## 五、元数据中的评分字段
 
-在文章最终元数据中：
+在文章最终元数据中（独立 JSON 文件 `output/<文章名>.meta.json`）：
 
-```yaml
----
-Title: "文章标题"
-Score: 87                    # 综合评分（0-100）
-Reason for deduction:        # 扣分理由及违背原则
-  - "B2 螺旋结构不够自然"
-  - "C6 存在说教框架"
-Word Count: 1234 - Required: 1200
-Abstract: { ... }
-Highlight: [ "...", "...", "..." ]  # 金句点评（非摘录）
-Approach: { ... }
-Topic: { ... }
+```json
+{
+  "title": "文章标题",
+  "score": 87,
+  "deductions": [
+    { "id": "B2", "content": "螺旋结构不够自然", "severity": "medium" }
+  ],
+  "highlights": [],
+  "wordCount": 1234,
+  "requiredWords": "1200",
+  "abstract": "...",
+  "approach": "...",
+  "topic": {
+    "original": "...",
+    "keywords": []
+  }
+}
 ```
 
 ---

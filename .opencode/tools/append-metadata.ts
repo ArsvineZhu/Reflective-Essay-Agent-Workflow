@@ -30,7 +30,7 @@ interface ArticleMetadata {
   highlights?: Array<{
     id: string
     content: string
-    citation: string
+    citation?: string
     technique?: string
   }>
   wordCount: number
@@ -84,7 +84,7 @@ export default tool({
       tool.schema.object({
         id: tool.schema.string().describe("唯一标识, 如 H1, H2"),
         content: tool.schema.string().describe("评价内容"),
-        citation: tool.schema.string().describe("原文引用"),
+        citation: tool.schema.string().optional().describe("原文引用"),
         technique: tool.schema.string().optional().describe("写作技法"),
       })
     ).optional().describe("亮点点评对象数组"),
@@ -118,13 +118,39 @@ export default tool({
     const title = extractTitle(text)
     const wordCount = countChinese(text)
 
+    const requiredStr = args.requiredWords ?? "Unspec"
+
     // Score: parameter > review-report.md > null
     let score: number | null = args.score ?? null
     if (score === null) {
       score = extractScore(path.join(base, "tmp", "review-report.md"))
     }
 
-    const requiredStr = args.requiredWords ?? "Unspec"
+    // Word count deviation check:
+    //   "1200"       → ±10% 偏差
+    //   "1000-1200"  → 范围检查
+    //   "Unspec"     → 跳过
+    let wordCountDeduction = 0
+    const singleMatch = requiredStr.match(/^\d+$/)
+    const rangeMatch = requiredStr.match(/^(\d+)-(\d+)$/)
+    if (score !== null) {
+      let outOfRange = false
+      if (singleMatch) {
+        const target = parseInt(singleMatch[0], 10)
+        if (target > 0) {
+          const deviation = Math.abs(wordCount - target) / target
+          if (deviation > 0.1) outOfRange = true
+        }
+      } else if (rangeMatch) {
+        const min = parseInt(rangeMatch[1], 10)
+        const max = parseInt(rangeMatch[2], 10)
+        if (wordCount < min || wordCount > max) outOfRange = true
+      }
+      if (outOfRange) {
+        wordCountDeduction = 5
+        score = Math.max(0, score - wordCountDeduction)
+      }
+    }
 
     // Build metadata JSON
     const metadata: ArticleMetadata = {
@@ -146,7 +172,7 @@ export default tool({
       `元数据已生成: ${metaPath}`,
       `  Title: ${title}`,
       `  Score: ${score ?? "N/A"}`,
-      `  Word Count: ${wordCount} - Required: ${requiredStr}`,
+      `  Word Count: ${wordCount} - Required: ${requiredStr}${wordCountDeduction > 0 ? ` (字数偏差超过10%, 扣${wordCountDeduction}分)` : ""}`,
     ]
     if (args.deductions && args.deductions.length > 0) {
       summary.push(`  Deductions: ${args.deductions.length} 项`)

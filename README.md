@@ -76,7 +76,7 @@
 |------|--------|------|
 | `recommend` | Esperanta | **【增强版】根据主题智能推荐范文** → 输出技法摘要（低tokens）。内置5个词库，支持15个主题分类、12种技法识别，匹配准确率~85%） |
 | `aggregate-report` | Kaltsit | 合并批评报告 + 读者感受 → 审校报告 |
-| `append-metadata` | Priestess | 追加标准元数据区块（自动提取标题/字数/评分） |
+| `append-metadata` | Priestess | 生成独立元数据 JSON 文件（自动提取标题/字数/评分，字数偏差扣分） |
 | `archive` | Priestess | 归档终稿 + 全部中间文件，清理 tmp/ |
 | `count` | Priestess | 统计中文字数（排除标题和元数据） |
 | `essence` | Esperanta | **高分范文工具**：按分数列出/指定文章名获取原文/列出全部文章清单 |

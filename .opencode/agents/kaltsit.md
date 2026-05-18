@@ -1,5 +1,5 @@
 ---
-description: 审校编排器。接收文章路径，并行派 3 批评 + 5 读者，聚合输出。只编排不直接审。
+description: 审校编排器。接收文章路径，并行派 4 批评 + 5 读者，聚合输出。只编排不直接审。
 mode: primary
 model: deepseek/deepseek-v4-flash
 temperature: 0.7
