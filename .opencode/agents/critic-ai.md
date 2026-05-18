@@ -226,12 +226,12 @@ permission:
 |------|------|
 | `report_type` | `"AI 感审查"` |
 | `article` | 文章路径 |
-| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`/`citation`（可选），可选 `occurrences`。**重要：REJECT/DOUBT 项必须包含 `citation` 字段，多条引用用分号分隔** |
+| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`/`citation`（可选），可选 `occurrences`。**重要：对存在问题、弱点、批评等负面评价必须引用原文；结构等整体的、难以精确引用的除外** |
 | `overall_recommendation` | 整体建议文字 |
 
 ### 重要格式说明
 
-为支持新的元数据结构，**每项 REJECT/DOUBT 必须包含独立的 `citation` 字段**：
+对存在问题、弱点、批评等负面评价必须引用原文；结构等整体的、难以精确引用的除外。
 
 ```typescript
 {
@@ -243,8 +243,7 @@ permission:
 }
 ```
 
-- REJECT 项必须包含 `citation` 字段
-- DOUBT 项建议包含 `citation` 字段
+- REJECT/DOUBT 项必须引用原文，除非是结构等整体的、难以精确引用的
 - PASS 项不需要 `citation`
 - 引用内容必须是文中出现的精确文字
 - 多条引用用分号分隔

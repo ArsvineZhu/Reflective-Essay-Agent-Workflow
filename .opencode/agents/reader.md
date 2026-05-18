@@ -193,8 +193,8 @@ write-reader-report(
 |------|--------|----------|
 | `article` | 直接传收到的文章路径 | 与传入的路径一致 |
 | `style` | 你的读者风格 | 与分配的风格一致 |
-| `highlights` | 结构体数组：`{content, citation, technique?}`。至少 2 条 | content=亮点描述, citation=原文引用, technique=写作技法(可选) |
-| `weaknesses` | 结构体数组：`{content, citation}`。至少 2 条 | content=问题描述, citation=原文引用 |
+| `highlights` | 结构体数组：`{content, citation?, technique?}` | content=亮点描述, citation=原文引用(选填), technique=写作技法(可选) |
+| `weaknesses` | 结构体数组：`{content, citation?}` | content=问题描述, citation=原文引用(选填) |
 | `free_response` | 简短写下读完的直觉感受或联想到的个人经历 | 3 句话以内，不要长篇大论 |
 | `ai_suspicion` | 写哪里让你觉得像 AI 写的 | 没有怀疑就传 `[]` |
 | `overall_evaluation` | 一句话总结核心感受 | 10-20 字，会被用于摘要行 |

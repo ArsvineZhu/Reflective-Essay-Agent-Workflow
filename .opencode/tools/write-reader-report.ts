@@ -30,18 +30,18 @@ function nextReaderNumber(base: string): string {
 const VALID_LEVELS = ["高", "中", "低"]
 
 const highlightSchema = tool.schema.object({
-  content: tool.schema.string().describe("文章亮点描述, 如 '编辑低头看下一篇稿子的细节 -- 用动作留白代替情绪描写'"),
-  citation: tool.schema.string().describe("原文引用, 必须是文中出现的精确文字"),
+  content: tool.schema.string().describe("文章亮点描述"),
+  citation: tool.schema.string().optional().describe("原文引用, 必须是文中出现的精确文字"),
   technique: tool.schema.string().optional().describe("写作技法名称, 如 '动作锚定', '细节锚定'"),
 })
 
 const weaknessSchema = tool.schema.object({
   content: tool.schema.string().describe("文章缺点或可改进点描述"),
-  citation: tool.schema.string().describe("原文引用, 必须是文中出现的精确文字"),
+  citation: tool.schema.string().optional().describe("原文引用, 必须是文中出现的精确文字"),
 })
 
 export default tool({
-  description: "写入读者读后感, 返回文件路径和摘要行. 读者必须使用此工具, 禁止手动写文件. highlights 和 weaknesses 必须传入结构化对象(含 content/citation/technique).",
+  description: "写入读者读后感, 返回文件路径和摘要行. 读者必须使用此工具, 禁止手动写文件. highlights 和 weaknesses 使用结构化对象(含 content/citation/technique).",
   args: {
     article: tool.schema.string().describe(
       "文章路径, 如 `./output/xxx.txt`. 读者已读取该文件, 此参数用于记录来源."
@@ -50,10 +50,10 @@ export default tool({
       "读者风格名称, 如 `感性读者`, `怀疑论者`, `审美型读者`, `普通路人`, `AI 审查者` 等. 必须与分配的风格一致."
     ),
     highlights: tool.schema.array(highlightSchema).describe(
-      "文章亮点列表. 每条必须包含 content(亮点描述) 和 citation(原文引用), 可选 technique(写作技法). 至少 2 条."
+      "文章亮点列表. 每条包含 content(亮点描述) 和可选的 citation(原文引用)/technique(写作技法)."
     ),
     weaknesses: tool.schema.array(weaknessSchema).describe(
-      "文章缺点列表. 每条必须包含 content(问题描述) 和 citation(原文引用). 至少 2 条, 没有明显缺点也要写可改进之处."
+      "文章缺点列表. 每条包含 content(问题描述) 和可选的 citation(原文引用)."
     ),
     free_response: tool.schema.string().optional().describe(
       "自由感受补充. 简短写下读完的直觉感受或联想到的个人经历. 不要长篇大论, 3 句话以内."
@@ -102,13 +102,11 @@ export default tool({
     // Validate highlights structure
     for (const h of args.highlights ?? []) {
       if (!h.content) throw new Error("highlights 每条必须包含 content 字段")
-      if (!h.citation) throw new Error("highlights 每条必须包含 citation 字段")
     }
 
     // Validate weaknesses structure
     for (const w of args.weaknesses ?? []) {
       if (!w.content) throw new Error("weaknesses 每条必须包含 content 字段")
-      if (!w.citation) throw new Error("weaknesses 每条必须包含 citation 字段")
     }
 
     // --- write ---
@@ -130,13 +128,13 @@ export default tool({
       metadata_highlights: args.highlights.map((h, i) => ({
         id: `RH${String(i + 1).padStart(2, "0")}`,
         content: h.content,
-        citation: h.citation,
-        technique: h.technique || undefined,
+        ...(h.citation ? { citation: h.citation } : {}),
+        ...(h.technique ? { technique: h.technique } : {}),
       })),
       metadata_weaknesses: args.weaknesses.map((w, i) => ({
         id: `RW${String(i + 1).padStart(2, "0")}`,
         content: w.content,
-        citation: w.citation,
+        ...(w.citation ? { citation: w.citation } : {}),
       })),
     }
 
