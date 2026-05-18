@@ -74,11 +74,11 @@ export default tool({
   async execute(args, context) {
     // --- validation ---
     if (!args.style) throw new Error("style 不能为空")
-    if (!args.highlights || !Array.isArray(args.highlights) || args.highlights.length < 2) {
-      throw new Error("highlights 必填, 且至少 2 条")
+    if (args.highlights && !Array.isArray(args.highlights)) {
+      throw new Error("highlights 必须是数组")
     }
-    if (!args.weaknesses || !Array.isArray(args.weaknesses) || args.weaknesses.length < 2) {
-      throw new Error("weaknesses 必填, 且至少 2 条")
+    if (args.weaknesses && !Array.isArray(args.weaknesses)) {
+      throw new Error("weaknesses 必须是数组")
     }
     if (!args.overall_evaluation) throw new Error("overall_evaluation 不能为空")
     if (!args.evaluation) throw new Error("evaluation 不能为空")
@@ -100,13 +100,13 @@ export default tool({
     }
 
     // Validate highlights structure
-    for (const h of args.highlights) {
+    for (const h of args.highlights ?? []) {
       if (!h.content) throw new Error("highlights 每条必须包含 content 字段")
       if (!h.citation) throw new Error("highlights 每条必须包含 citation 字段")
     }
 
     // Validate weaknesses structure
-    for (const w of args.weaknesses) {
+    for (const w of args.weaknesses ?? []) {
       if (!w.content) throw new Error("weaknesses 每条必须包含 content 字段")
       if (!w.citation) throw new Error("weaknesses 每条必须包含 citation 字段")
     }

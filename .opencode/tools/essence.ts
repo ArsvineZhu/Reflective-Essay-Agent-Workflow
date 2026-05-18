@@ -26,13 +26,13 @@ function visPad(s: string, width: number): string {
 interface ArticleMetadata {
   title: string
   score: number | null
-  deductions: Array<{
+  deductions?: Array<{
     id: string
     content: string
     severity: "low" | "medium" | "high"
     citation?: string
   }>
-  highlights: Array<{
+  highlights?: Array<{
     id: string
     content: string
     citation: string
@@ -124,12 +124,12 @@ export default tool({
           const score = meta.score ?? 0
 
           // 格式化高亮与扣分内容用于显示
-          const highlightStr = meta.highlights.length > 0
-            ? JSON.stringify(meta.highlights.map(h => ({ id: h.id, content: h.content, citation: h.citation.substring(0, 50) })), null, 2)
+          const highlightStr = (meta.highlights ?? []).length > 0
+            ? JSON.stringify((meta.highlights ?? []).map(h => ({ id: h.id, content: h.content, citation: h.citation.substring(0, 50) })), null, 2)
             : ''
 
-          const deductionStr = meta.deductions.length > 0
-            ? JSON.stringify(meta.deductions.map(d => ({ id: d.id, content: d.content, severity: d.severity })), null, 2)
+          const deductionStr = (meta.deductions ?? []).length > 0
+            ? JSON.stringify((meta.deductions ?? []).map(d => ({ id: d.id, content: d.content, severity: d.severity })), null, 2)
             : ''
 
           // 文章正文（txt 文件已干净，无需去除元数据块）

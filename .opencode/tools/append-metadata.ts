@@ -21,13 +21,13 @@ function countChinese(text: string): number {
 interface ArticleMetadata {
   title: string
   score: number | null
-  deductions: Array<{
+  deductions?: Array<{
     id: string
     content: string
     severity: "low" | "medium" | "high"
     citation?: string
   }>
-  highlights: Array<{
+  highlights?: Array<{
     id: string
     content: string
     citation: string

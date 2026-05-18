@@ -44,8 +44,8 @@ permission:
 |------|------|------|
 | `article` | 文章路径，如 `./output/xxx.txt` | 是 |
 | `style` | 你的读者风格 | 是 |
-| `highlights` | **结构化对象数组**。每条包含：`content`（亮点描述）, `citation`（原文引用，必填）, `technique`（写作技法，可选）。至少 2 条 | 是 |
-| `weaknesses` | **结构化对象数组**。每条包含：`content`（问题描述）, `citation`（原文引用）。至少 2 条 | 是 |
+| `highlights` | **结构化对象数组**。每条包含：`content`（亮点描述）, `citation`（原文引用，选填）, `technique`（写作技法，可选） | 否 |
+| `weaknesses` | **结构化对象数组**。每条包含：`content`（问题描述）, `citation`（原文引用） | 否 |
 | `free_response` | 简短自由感受补充，3 句话以内 | 否 |
 | `ai_suspicion` | 觉得像 AI 的原因（数组） | 否 |
 | `overall_evaluation` | 整体感受总结 | 是 |
@@ -213,7 +213,6 @@ tmp/reader-001.json | 001 — 感性读者 | 被击中了，像是看了一把�
 
 ### 关键约束
 
-- `highlights` 和 `weaknesses` 必须**各至少 2 条**，每条必须遵循 `具体部分 -- 原因` 的格式
 - 优先提供**可操作的分析**，减少纯粹的感受抒发
 - 如果某个点让你联想到自己的经历，可以写在 `free_response` 里——但要简短，3 句话以内
 - **必须使用 `write-reader-report` 工具写入，禁止手动写文件**

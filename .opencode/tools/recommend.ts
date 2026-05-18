@@ -42,13 +42,13 @@ interface ArticleMeta {
 interface ArticleMetadata {
   title: string
   score: number | null
-  deductions: Array<{
+  deductions?: Array<{
     id: string
     content: string
     severity: "low" | "medium" | "high"
     citation?: string
   }>
-  highlights: Array<{
+  highlights?: Array<{
     id: string
     content: string
     citation: string
@@ -111,11 +111,11 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
       const score = meta.score ?? 0
 
       // 从新结构提取高亮内容（用于技法识别）
-      const highlightContents = meta.highlights.map(h => h.content)
-      const highlightCitations = meta.highlights.map(h => h.citation)
+      const highlightContents = (meta.highlights ?? []).map(h => h.content)
+      const highlightCitations = (meta.highlights ?? []).map(h => h.citation)
 
       // 从新结构提取扣分内容（用于问题识别）
-      const deductionContents = meta.deductions.map(d => d.content)
+      const deductionContents = (meta.deductions ?? []).map(d => d.content)
 
       // 提取关键词（从 topic.keywords + abstract + approach + topic.original/analysis + title）
       const topicKeywords = meta.topic?.keywords ?? []
