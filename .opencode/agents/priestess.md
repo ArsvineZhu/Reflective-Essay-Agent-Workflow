@@ -146,11 +146,11 @@ permission:
 - `article` — 文章路径
 - `score` — 综合评分（可从 `tmp/review-report.md` 的"综合评分"行获取参考，再自己评价；也可不传，工具自动读取并写入）
 - `requiredWords` — 要求字数（如 `"800"`、`"700-900"`、`"Unspec"`）
-- `reasonForDeduction` — 扣分理由数组，参看 `tmp/` 下评审与读者反馈
+- `deductions` — 扣分理由对象数组，每项包含 `id`（检查项标识，如 A1、B3、C2）、`content`（扣分理由描述）、`severity`（严重程度：low/medium/high）、`citation`（原文引用，可选）
+- `highlights` — 亮点点评对象数组，每项包含 `id`（亮点标识，如 H1、H2）、`content`（点评内容）、`citation`（原文引用）、`technique`（写作技法，可选）
 - `abstract` — 文章核心摘要，概括主题
-- `highlights` — 精彩句子/金句点评数组，分析作用、位置与为何精彩
 - `approach` — 创作方法、研究路径与写作决策
-- `topic` — 命题原文、分析理解、切入角度
+- `topic` — 主题对象，包含 `original`（命题原文）、`keywords`（分类话题关键词数组）、`analysis`（分析解读，可选）
 
 调用示例：
 
@@ -159,17 +159,21 @@ append-metadata(
   article="output/xxx.txt",
   score=78,
   requiredWords="800-1200",
-  reasonForDeduction=[
-    "从单一案例到普遍化论述的过渡缺少中间论证",
-    "回旋镖比喻后叠加了第二个比喻体系"
+  deductions=[
+    { id: "B1", content: "从单一案例到普遍化论述的过渡缺少中间论证", severity: "medium", citation: "由此可见，这就是为什么……" },
+    { id: "B5", content: "回旋镖比喻后叠加了第二个比喻体系，隐喻一致性受损", severity: "low" }
   ],
   abstract="以……为主线，揭示……。结尾退回对……的确认。",
   highlights=[
-    "……——三个递进短句完成定性，从伦理评判转入本体论描述",
-    "……——四个连续动作捕捉了一个'加害者'同时也是'饥饿者'的瞬间"
+    { id: "H1", content: "三个递进短句完成定性，从伦理评判转入本体论描述", citation: "……", technique: "递进式排比" },
+    { id: "H2", content: "四个连续动作捕捉了一个'加害者'同时也是'饥饿者'的瞬间", citation: "……", technique: "动作锚定" }
   ],
   approach="以用户提出的……为起点，经四轮扩展研究覆盖……四个维度……",
-  topic="原文：……\n分析：……\n切入角度：……"
+  topic={
+    original: "……",
+    keywords: ["愧疚教育", "家庭关系", "成长"],
+    analysis: "切入角度……"
+  }
 )
 ```
 

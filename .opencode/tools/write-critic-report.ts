@@ -38,6 +38,7 @@ interface ComputedResult {
   severity: number
   occurrences: number
   deduction: number
+  citation?: string
 }
 
 interface CriticReport {
@@ -75,6 +76,7 @@ export default tool({
       result: tool.schema.string().describe("结果: `PASS` / `DOUBT` / `REJECT`"),
       severity: tool.schema.number().describe("倍率: PASS=0, DOUBT=该项目标定的存疑倍率, REJECT=该项目标定的拒绝倍率"),
       note: tool.schema.string().describe("对检查项目的情况进行说明"),
+      citation: tool.schema.string().optional().describe("原文引用, 用于 REJECT/DOUBT 项. 多条引用用分号分隔"),
       occurrences: tool.schema.number().optional().describe("REJECT 时的问题数量, 默认为 1"),
     })).describe("逐项检查结果数组"),
     common_errors: tool.schema.array(tool.schema.any()).optional().describe("常见错误数组 (仅声音与合规审查使用)"),
@@ -119,6 +121,7 @@ export default tool({
         severity,
         occurrences: result === "REJECT" ? occurrences : (result === "DOUBT" ? 1 : 0),
         deduction: itemDeduction,
+        citation: item.citation,
       })
     }
 

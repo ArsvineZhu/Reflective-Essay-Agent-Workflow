@@ -35,11 +35,48 @@ interface ArticleMeta {
   fileModified: number
 }
 
+interface ArticleMetadata {
+  title: string
+  score: number
+  deductions: Array<{
+    id: string
+    content: string
+    severity: "low" | "medium" | "high"
+    citation?: string
+  }>
+  highlights: Array<{
+    id: string
+    content: string
+    citation: string
+    technique?: string
+  }>
+  wordCount: number
+  requiredWords: string
+  abstract?: string
+  approach?: string
+  topic?: {
+    original: string
+    keywords: string[]
+    analysis?: string
+  }
+}
+
 interface MatchResult {
   article: ArticleMeta
   score: number
   matchReasons: string[]
   matchedCategories: string[]
+}
+
+// ============== 辅助函数 ==============
+
+function countChineseChars(text: string, removeTitle: boolean = false): number {
+  let content = text
+  if (removeTitle && content.startsWith("# ") && content.includes("\n")) {
+    content = content.substring(content.indexOf("\n") + 1)
+  }
+  const m = content.match(/[一-鿿]/g)
+  return m ? m.length : 0
 }
 
 // ============== 索引生成 ==============
@@ -51,58 +88,47 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
   const files = fs.readdirSync(outputDir).sort()
   for (const fname of files) {
     if (fname.startsWith('_') || !fname.endsWith('.txt')) continue
+    if (fname.endsWith('.meta.json')) continue
 
     const fp = path.join(outputDir, fname)
+    const metaPath = path.join(outputDir, fname.replace('.txt', '.meta.json'))
+
     try {
       const stat = fs.statSync(fp)
       const text = fs.readFileSync(fp, 'utf-8')
 
-      // 解析元数据
-      const sm = text.match(/^Score:\s*(\d+)/m)
-      if (!sm) continue
-      const score = parseInt(sm[1], 10)
-      if (isNaN(score)) continue
-
-      const tm = text.match(/^Title:\s*"(.+?)"/m)
-      const title = tm ? tm[1] : fname.replace('.txt', '')
-
-      // 解析元数据分隔符 (兼容 \n 和 \r\n 行尾)
-      const sepMatch = text.match(/\r?\n---\r?\n/)
-      const sepIdx = sepMatch ? sepMatch.index! : -1
-      const sepLen = sepMatch ? sepMatch[0].length : 0
-      const body = sepIdx === -1 ? text : text.substring(0, sepIdx)
-      const meta = sepIdx === -1 ? '' : text.substring(sepIdx + sepLen)
-
-      // 提取 Highlight 和 Deduction
-      const highlights: string[] = []
-      const hlMatch = meta.match(/Highlight:\s*\[([\s\S]*?)\]/m)
-      if (hlMatch) {
-        const quotes = hlMatch[1].match(/"([^"]*)"/g)
-        if (quotes) highlights.push(...quotes.map(q => q.slice(1, -1)))
+      // 必须从独立 JSON 文件读取元数据（不再向后兼容）
+      if (!fs.existsSync(metaPath)) {
+        continue // 没有元数据，跳过
       }
 
-      const deductions: string[] = []
-      const dedMatch = meta.match(/Reason for deduction:\s*\[([\s\S]*?)\]/m)
-      if (dedMatch) {
-        const quotes = dedMatch[1].match(/"([^"]*)"/g)
-        if (quotes) deductions.push(...quotes.map(q => q.slice(1, -1)))
-      }
+      const meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')) as ArticleMetadata
+      const title = meta.title
+      const score = meta.score ?? 0
+
+      // 从新结构提取高亮内容（用于技法识别）
+      const highlightContents = meta.highlights.map(h => h.content)
+      const highlightCitations = meta.highlights.map(h => h.citation)
+
+      // 从新结构提取扣分内容（用于问题识别）
+      const deductionContents = meta.deductions.map(d => d.content)
+
+      // 提取关键词（从 topic.keywords + abstract + title）
+      const topicKeywords = meta.topic?.keywords ?? []
+      const allTopicText = title + ' ' + (meta.abstract ?? '') + ' ' + (meta.topic?.original ?? '')
+      const topics = [...topicKeywords, ...simpleChineseSegment(allTopicText, lexicon.stopWords)].slice(0, 8)
+
+      // 文章正文（txt 文件已干净，无需去除元数据块）
+      const body = text
 
       // 提取关键词
       const keywords = simpleChineseSegment(title + ' ' + body, lexicon.stopWords)
 
-      // 提取主题
-      const abstractMatch = meta.match(/Abstract:\s*\{([\s\S]*?)\}/m)
-      const abstract = abstractMatch ? abstractMatch[1] : ''
-      const topicMatch = meta.match(/Topic:\s*\{([\s\S]*?)\}/m)
-      const topicField = topicMatch ? topicMatch[1] : ''
-      const topics = simpleChineseSegment(title + ' ' + abstract + ' ' + topicField, lexicon.stopWords).slice(0, 8)
-
-      // 使用技法词库识别使用的技法
-      const detectedTechniques = detectTechniques(body, highlights, lexicon)
+      // 使用技法词库识别使用的技法（同时使用 citation 作为证据）
+      const detectedTechniques = detectTechniques(body, [...highlightContents, ...highlightCitations], lexicon)
 
       // 识别问题模式
-      const detectedIssues = detectIssues(body, deductions, lexicon)
+      const detectedIssues = detectIssues(body, deductionContents, lexicon)
 
       // 识别核心意象
       const metaphors = extractMetaphors(body)
@@ -111,10 +137,10 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
       const structure = detectStructureType(body, basePath)
 
       // 提取优点摘要
-      const strengths = extractStrengths(highlights, detectedTechniques)
+      const strengths = extractStrengths(highlightContents, detectedTechniques)
 
       // 提取缺点摘要
-      const weaknesses = extractWeaknesses(deductions, detectedIssues)
+      const weaknesses = extractWeaknesses(deductionContents, detectedIssues)
 
       // 计算主题分类匹配
       const topicMatchResult = calculateTopicMatchScore(topics, topics, keywords, lexicon)
@@ -133,7 +159,7 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
         detectedIssues,
         keywords,
         structure,
-        wordCount: body.length,
+        wordCount: countChineseChars(body, true),
         fileModified: stat.mtime.getTime()
       })
     } catch (e) {
@@ -170,8 +196,13 @@ function loadOrBuildIndex(outputDir: string, basePath: string): ArticleIndex {
           needsUpdate = true
           break
         }
-        const stat = fs.statSync(path.join(outputDir, f))
-        if (stat.mtime.getTime() > (cachedTimes.get(f) || 0)) {
+        // 同时检查 .txt 和 .meta.json 的更新时间
+        const txtStat = fs.statSync(path.join(outputDir, f))
+        const metaPath = path.join(outputDir, f.replace('.txt', '.meta.json'))
+        const metaMtime = fs.existsSync(metaPath) ? fs.statSync(metaPath).mtime.getTime() : 0
+        const latestMtime = Math.max(txtStat.mtime.getTime(), metaMtime)
+
+        if (latestMtime > (cachedTimes.get(f) || 0)) {
           needsUpdate = true
           break
         }
@@ -220,9 +251,9 @@ function detectStructureType(body: string, basePath: string): string {
   if (paragraphs.length < 3) return "短篇"
 
   // 从 structure-patterns.json 加载扩展词表，回退到文件中的 seedWords，再到硬编码默认值
-  let 转折词: string[] = ["但", "但是", "然而", "可是", "不过"]
-  let 时间标记: string[] = ["记得", "那天", "那年", "小时候", "那时候"]
-  let 排比词: string[] = ["没有", "不必", "不要"]
+  let transitionWords: string[] = ["但", "但是", "然而", "可是", "不过"]
+  let timeMarkers: string[] = ["记得", "那天", "那年", "小时候", "那时候"]
+  let parallelWords: string[] = ["没有", "不必", "不要"]
 
   const structPath = path.join(basePath, ".opencode", "lexicon", "structure-patterns.json")
   if (fs.existsSync(structPath)) {
@@ -230,9 +261,9 @@ function detectStructureType(body: string, basePath: string): string {
       const data = JSON.parse(fs.readFileSync(structPath, "utf-8"))
       if (data.patterns) {
         const p = data.patterns
-        if (p["转折词"]) 转折词 = p["转折词"].expandedWords || p["转折词"].seedWords || 转折词
-        if (p["时间标记"]) 时间标记 = p["时间标记"].expandedWords || p["时间标记"].seedWords || 时间标记
-        if (p["排比词"]) 排比词 = p["排比词"].expandedWords || p["排比词"].seedWords || 排比词
+        if (p["转折词"]) transitionWords = p["转折词"].expandedWords || p["转折词"].seedWords || transitionWords
+        if (p["时间标记"]) timeMarkers = p["时间标记"].expandedWords || p["时间标记"].seedWords || timeMarkers
+        if (p["排比词"]) parallelWords = p["排比词"].expandedWords || p["排比词"].seedWords || parallelWords
       }
     } catch (_) {
       // 文件损坏，使用硬编码默认值
@@ -240,17 +271,17 @@ function detectStructureType(body: string, basePath: string): string {
   }
 
   // 检查是否有大量转折
-  const butRegex = new RegExp(转折词.join("|"), "g")
+  const butRegex = new RegExp(transitionWords.join("|"), "g")
   const butCount = (body.match(butRegex) || []).length
   if (butCount >= paragraphs.length / 2) return "螺旋递进"
 
   // 检查是否有大量场景化/回忆式描写
-  const timeRegex = new RegExp(时间标记.join("|"), "g")
-  const timeMarkers = body.match(timeRegex) || []
-  if (timeMarkers.length >= 3) return "回忆式"
+  const timeRegex = new RegExp(timeMarkers.join("|"), "g")
+  const timeMarkerMatches = body.match(timeRegex) || []
+  if (timeMarkerMatches.length >= 3) return "回忆式"
 
   // 检查是否有并列/排比结构
-  const parallelRegex = new RegExp(排比词.join("|"), "g")
+  const parallelRegex = new RegExp(parallelWords.join("|"), "g")
   const parallelCount = (body.match(parallelRegex) || []).length
   if (parallelCount >= 3) return "排比推进"
 
@@ -597,7 +628,7 @@ export default tool({
     topic: tool.schema.string().describe("写作命题/主题关键词, 用于语义匹配. 支持多关键词, 用空格分隔."),
     limit: tool.schema.number().default(3).describe("推荐篇数, 默认 3 篇, 最多 10 篇."),
     minScore: tool.schema.number().default(70).describe("最低入选分数, 默认 70 分."),
-    mode: tool.schema.string().default("technique").describe("输出模式:technique(仅技法摘要) / full(含文件信息)"),
+    mode: tool.schema.string().default("technique").describe("输出模式:`technique`(仅技法摘要) / `full`(含文件信息)"),
     techniques: tool.schema.array(tool.schema.string()).optional().describe("指定需要学习的技法, 如:['螺旋结构', '细节锚定']. 仅推荐使用了指定技法的文章."),
     categories: tool.schema.array(tool.schema.string()).optional().describe("指定主题分类, 如:['家庭与亲情', '互联网与文化']."),
     rebuildIndex: tool.schema.boolean().default(false).describe("强制重建文章索引, 默认 false."),

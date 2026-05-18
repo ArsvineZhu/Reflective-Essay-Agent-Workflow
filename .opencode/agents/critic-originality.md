@@ -117,20 +117,40 @@ permission:
 |------|------|------|
 | `report_type` | `"原创性审查"` | 是 |
 | `article` | 文章路径，如 `./output/xxx.txt` | 是 |
-| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`, 可选 `occurrences` | 是 |
+| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`/`citation`（可选），可选 `occurrences`。**重要：REJECT/DOUBT 项必须包含 `citation` 字段，多条引用用分号分隔** | 是 |
 | `overall_assessment` | 总体评估文字 | 否 |
+
+### 重要格式说明
+
+为支持新的元数据结构，**每项 REJECT/DOUBT 必须包含独立的 `citation` 字段**：
+
+```typescript
+{
+  item: "A1 句式套用",
+  result: "REJECT",
+  severity: 5,
+  occurrences: 2,
+  note: "排比句式骨架与参考源一致",
+  citation: "没有人……没有人……没有人……"
+```
+
+- REJECT 项必须包含 `citation` 字段
+- DOUBT 项建议包含 `citation` 字段
+- PASS 项不需要 `citation`
+- 引用内容必须是文中出现的精确文字
+- 多条引用用分号分隔
 
 ### 工具调用示例
 
-```
+```typescript
 write-critic-report(
   report_type="原创性审查",
   article="./output/xxx.txt",
   item_results=[
-    { item="A1 句式套用", result="PASS", note="未发现句式套用", severity=0 },
-    { item="A2 素材借用", result="PASS", note="素材来自独立观察", severity=0 },
-    { item="A3 意象复用", result="DOUBT", note="'井'意象功能不同已放过", severity=0 },
-    { item="A4 结尾相似", result="PASS", note="结尾句式独立", severity=0 }
+    { item: "A1 句式套用", result: "PASS", note: "未发现句式套用", severity: 0 },
+    { item: "A2 素材借用", result: "PASS", note: "素材来自独立观察", severity: 0 },
+    { item: "A3 意象复用", result: "DOUBT", note: "'井'意象功能不同已放过", severity: 0, citation: "井是沉默的记忆容器" },
+    { item: "A4 结尾相似", result: "PASS", note: "结尾句式独立", severity: 0 }
   ],
   overall_assessment="文章整体独立，通过"
 )
@@ -138,15 +158,15 @@ write-critic-report(
 
 **负面示例（发现问题时）：**
 
-```
+```typescript
 write-critic-report(
   report_type="原创性审查",
   article="./output/xxx.txt",
   item_results=[
-    { item="A1 句式套用", result="REJECT", severity=5, occurrences=2, note="排比句式骨架与 ref/southern-weekly 一致" },
-    { item="A2 素材借用", result="PASS", note="素材来自独立观察", severity=0 },
-    { item="A3 意象复用", result="DOUBT", note="'井'意象功能不同已放过", severity=0 },
-    { item="A4 结尾相似", result="REJECT", severity=5, occurrences=1, note="结尾短句节奏与 ref 匹配" }
+    { item: "A1 句式套用", result: "REJECT", severity: 5, occurrences: 2, note: "排比句式骨架与 ref/southern-weekly 一致", citation: "没有人……没有人……没有人……" },
+    { item: "A2 素材借用", result: "PASS", note: "素材来自独立观察", severity: 0 },
+    { item: "A3 意象复用", result: "DOUBT", note: "'井'意象功能不同已放过", severity: 0, citation: "井是沉默的记忆容器" },
+    { item: "A4 结尾相似", result: "REJECT", severity: 5, occurrences: 1, note: "结尾短句节奏与 ref 匹配", citation: "时间还在流淌" }
   ],
   overall_assessment="A1句式套用2处、A4结尾相似1处，需修改"
 )

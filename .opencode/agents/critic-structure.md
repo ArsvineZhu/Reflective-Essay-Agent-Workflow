@@ -338,28 +338,48 @@ permission:
 |------|------|------|
 | `report_type` | `"结构与技法"` | 是 |
 | `article` | 文章路径，如 `./output/xxx.txt` | 是 |
-| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`, 可选 `occurrences` | 是 |
+| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`/`citation`（可选），可选 `occurrences`。**重要：REJECT/DOUBT 项必须包含 `citation` 字段，多条引用用分号分隔** | 是 |
 | `overall_recommendation` | 整体建议文字 | 否 |
+
+### 重要格式说明
+
+为支持新的元数据结构，**每项 REJECT/DOUBT 必须包含独立的 `citation` 字段**：
+
+```typescript
+{
+  item: "B1 议论文检测",
+  result: "REJECT",
+  severity: 4,
+  note: "可画出线性论证链条",
+  citation: "由此可见……因此……所以……"
+}
+```
+
+- REJECT 项必须包含 `citation` 字段
+- DOUBT 项建议包含 `citation` 字段
+- PASS 项不需要 `citation`
+- 引用内容必须是文中出现的精确文字
+- 多条引用用分号分隔
 
 ### 工具调用示例
 
-```
+```typescript
 write-critic-report(
   report_type="结构与技法",
   article="./output/xxx.txt",
   item_results=[
-    { item="B1 议论文检测", result="PASS", note="螺旋推进，无线性链条", severity=0 },
-    { item="B2 螺旋自然性", result="PASS", note="无法定位步骤位置", severity=0 },
-    { item="B3 金句存在性", result="PASS", note="无金句，内容充实", severity=0 },
-    { item="B4 金句质量", result="PASS", note="无金句候选", severity=0 },
-    { item="B5 隐喻一致性", result="PASS", note="核心意象贯穿全文", severity=0 },
-    { item="B6 排比功能化", result="PASS", note="排比均有论证功能", severity=0 },
-    { item="B7 降维锚定", result="PASS", note="抽象论断后有锚点", severity=0 },
-    { item="B8 感官场景", result="PASS", note="show/tell 比例合格", severity=0 },
-    { item="B9 矛盾保留", result="PASS", note="矛盾未被消解", severity=0 },
-    { item="B10 结尾开放性", result="PASS", note="结尾悬置，未给答案", severity=0 },
-    { item="B11 人物检查", result="PASS", note="人物有溢出细节", severity=0 },
-    { item="B12 认知检查", result="PASS", note="翻出了反常识面向", severity=0 }
+    { item: "B1 议论文检测", result: "PASS", note: "螺旋推进，无线性链条", severity: 0 },
+    { item: "B2 螺旋自然性", result: "PASS", note: "无法定位步骤位置", severity: 0 },
+    { item: "B3 金句存在性", result: "PASS", note: "无金句，内容充实", severity: 0 },
+    { item: "B4 金句质量", result: "PASS", note: "无金句候选", severity: 0 },
+    { item: "B5 隐喻一致性", result: "PASS", note: "核心意象贯穿全文", severity: 0 },
+    { item: "B6 排比功能化", result: "PASS", note: "排比均有论证功能", severity: 0 },
+    { item: "B7 降维锚定", result: "PASS", note: "抽象论断后有锚点", severity: 0 },
+    { item: "B8 感官场景", result: "PASS", note: "show/tell 比例合格", severity: 0 },
+    { item: "B9 矛盾保留", result: "PASS", note: "矛盾未被消解", severity: 0 },
+    { item: "B10 结尾开放性", result: "PASS", note: "结尾悬置，未给答案", severity: 0 },
+    { item: "B11 人物检查", result: "PASS", note: "人物有溢出细节", severity: 0 },
+    { item: "B12 认知检查", result: "PASS", note: "翻出了反常识面向", severity: 0 }
   ],
   overall_recommendation="结构合格"
 )
@@ -367,23 +387,23 @@ write-critic-report(
 
 **负面示例（发现问题时）：**
 
-```
+```typescript
 write-critic-report(
   report_type="结构与技法",
   article="./output/xxx.txt",
   item_results=[
-    { item="B1 议论文检测", result="REJECT", note="可画出线性论证链条", severity=4 },
-    { item="B2 螺旋自然性", result="REJECT", note="每段开头有明确标签词", severity=4 },
-    { item="B3 金句存在性", result="PASS", note="无金句，内容充实", severity=0 },
-    { item="B4 金句质量", result="PASS", note="无金句候选", severity=0 },
-    { item="B5 隐喻一致性", result="REJECT", note="标题意象仅出现一次后消失", severity=3 },
-    { item="B6 排比功能化", result="PASS", note="排比均有论证功能", severity=0 },
-    { item="B7 降维锚定", result="PASS", note="抽象论断后有锚点", severity=0 },
-    { item="B8 感官场景", result="PASS", note="show/tell 比例合格", severity=0 },
-    { item="B9 矛盾保留", result="DOUBT", note="末尾用'但'弱化了矛盾一方", severity=0 },
-    { item="B10 结尾开放性", result="PASS", note="结尾悬置，未给答案", severity=0 },
-    { item="B11 人物检查", result="PASS", note="人物有溢出细节", severity=0 },
-    { item="B12 认知检查", result="DOUBT", note="翻转不够彻底", severity=0 }
+    { item: "B1 议论文检测", result: "REJECT", note: "可画出线性论证链条", severity: 4, citation: "由此可见……因此……所以……" },
+    { item: "B2 螺旋自然性", result: "REJECT", note: "每段开头有明确标签词", severity: 4, citation: "首先……其次……最后……" },
+    { item: "B3 金句存在性", result: "PASS", note: "无金句，内容充实", severity: 0 },
+    { item: "B4 金句质量", result: "PASS", note: "无金句候选", severity: 0 },
+    { item: "B5 隐喻一致性", result: "REJECT", note: "标题意象仅出现一次后消失", severity: 3, citation: "浅水区" },
+    { item: "B6 排比功能化", result: "PASS", note: "排比均有论证功能", severity: 0 },
+    { item: "B7 降维锚定", result: "PASS", note: "抽象论断后有锚点", severity: 0 },
+    { item: "B8 感官场景", result: "PASS", note: "show/tell 比例合格", severity: 0 },
+    { item: "B9 矛盾保留", result: "DOUBT", note: "末尾用'但'弱化了矛盾一方", severity: 0, citation: "但……" },
+    { item: "B10 结尾开放性", result: "PASS", note: "结尾悬置，未给答案", severity: 0 },
+    { item: "B11 人物检查", result: "PASS", note: "人物有溢出细节", severity: 0 },
+    { item: "B12 认知检查", result: "DOUBT", note: "翻转不够彻底", severity: 0 }
   ],
   overall_recommendation="B1/B2结构问题，B5隐喻不完整，需修改后重审"
 )

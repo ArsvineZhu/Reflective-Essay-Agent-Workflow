@@ -230,10 +230,30 @@ permission:
 |------|------|------|
 | `report_type` | `"声音与合规"` | 是 |
 | `article` | 文章路径，如 `./output/xxx.txt` | 是 |
-| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`, 可选 `occurrences` | 是 |
+| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`/`citation`（可选），可选 `occurrences`。**重要：REJECT/DOUBT 项必须包含 `citation` 字段，多条引用用分号分隔** | 是 |
 | `common_errors` | 常见错误数组 | 否 |
 | `danger_signals` | 危险信号数组 | 否 |
 | `overall_recommendation` | 整体建议文字 | 否 |
+
+### 重要格式说明
+
+为支持新的元数据结构，**每项 REJECT/DOUBT 必须包含独立的 `citation` 字段**：
+
+```typescript
+{
+  item: "C2 感叹号",
+  result: "REJECT",
+  severity: 1,
+  note: "5 个感叹号，部分附着在空洞口号上",
+  citation: "让我们共同……！"
+}
+```
+
+- REJECT 项必须包含 `citation` 字段
+- DOUBT 项建议包含 `citation` 字段
+- PASS 项不需要 `citation`
+- 引用内容必须是文中出现的精确文字
+- 多条引用用分号分隔
 
 ### 工具调用示例
 
@@ -266,14 +286,14 @@ write-critic-report(
   article="./output/xxx.txt",
   item_results=[
     { item="C1 共同体之声", result="PASS", note="以'我们'为主", severity=0 },
-    { item="C2 感叹号", result="REJECT", note="5 个感叹号，部分附着在空洞口号上", severity=1 },
-    { item="C3 替读者下结论", result="PASS", note="矛盾悬置", severity=0 },
-    { item="C4 论文式引用", result="PASS", note="无论文式引用", severity=0 },
-    { item="C5 鼓舞人心", result="PASS", note="情感曲线自然", severity=0 },
-    { item="C6 说教脚手架", result="REJECT", note="3 处'不得不承认'用于组织段落", severity=3 },
-    { item="C7 语言合规", result="REJECT", note="出现非必要英文词汇", severity=1 },
-    { item="C8 文体检查", result="PASS", note="文体统一", severity=0 },
-    { item="C9 Emoji 检测", result="REJECT", note="发现 2 处 emoji 使用", severity=1 }
+    { item: "C2 感叹号", result: "REJECT", severity: 1, note: "5 个感叹号，部分附着在空洞口号上", citation: "让我们共同……！" },
+    { item: "C3 替读者下结论", result: "PASS", note: "矛盾悬置", severity: 0 },
+    { item: "C4 论文式引用", result: "PASS", note: "无论文式引用", severity: 0 },
+    { item: "C5 鼓舞人心", result: "PASS", note: "情感曲线自然", severity: 0 },
+    { item: "C6 说教脚手架", result: "REJECT", severity: 3, note: "3 处'不得不承认'用于组织段落", citation: "我们不得不承认……不得不说的是……必须承认……" },
+    { item: "C7 语言合规", result: "REJECT", severity: 1, note: "出现非必要英文词汇", citation: "thinking something" },
+    { item: "C8 文体检查", result: "PASS", note: "文体统一", severity: 0 },
+    { item: "C9 Emoji 检测", result: "REJECT", severity: 1, note: "发现 2 处 emoji 使用", citation: "😊" }
   ],
   common_errors=[],
   danger_signals=[],

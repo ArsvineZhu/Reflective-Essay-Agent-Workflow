@@ -11,12 +11,37 @@ function resolve(p: string, base: string): string {
 }
 
 function countChinese(text: string): number {
-  const body = text.split("\n---")[0]
-  const withoutTitle = body.startsWith("# ") && body.includes("\n")
-    ? body.substring(body.indexOf("\n") + 1)
-    : body
+  const withoutTitle = text.startsWith("# ") && text.includes("\n")
+    ? text.substring(text.indexOf("\n") + 1)
+    : text
   const m = withoutTitle.match(/[一-鿿]/g)
   return m ? m.length : 0
+}
+
+interface ArticleMetadata {
+  title: string
+  score: number | null
+  deductions: Array<{
+    id: string
+    content: string
+    severity: "low" | "medium" | "high"
+    citation?: string
+  }>
+  highlights: Array<{
+    id: string
+    content: string
+    citation: string
+    technique?: string
+  }>
+  wordCount: number
+  requiredWords: string
+  abstract?: string
+  approach?: string
+  topic?: {
+    original: string
+    keywords: string[]
+    analysis?: string
+  }
 }
 
 /**
@@ -42,16 +67,34 @@ function extractScore(reviewReportPath: string): number | null {
 }
 
 export default tool({
-  description: "在文章末尾追加标准元数据区块. 自动提取标题与字数, 从审校报告读取综合评分, 其余字段由参数传入. 禁止手动估算字数.",
+  description: "为文章生成独立的元数据 JSON 文件. 自动提取标题与字数, 从审校报告读取综合评分, 其余字段由参数传入. 禁止手动估算字数.",
   args: {
     article: tool.schema.string().describe("文章路径, 如 output/xxx.txt"),
     score: tool.schema.number().optional().describe("综合评分 (0-100). 不建议自行传递，系统会自动从 tmp/review-report.md 读取"),
     requiredWords: tool.schema.string().optional().describe("要求字数, 如 '800', '700-900', 'Unspec'"),
-    reasonForDeduction: tool.schema.array(tool.schema.string()).optional().describe("扣分理由列表"),
+    deductions: tool.schema.array(
+      tool.schema.object({
+        id: tool.schema.string().describe("唯一标识, 如 C1, D2"),
+        content: tool.schema.string().describe("评价内容"),
+        severity: tool.schema.enum(["low", "medium", "high"]).describe("严重程度"),
+        citation: tool.schema.string().optional().describe("原文引用"),
+      })
+    ).optional().describe("扣分理由对象数组"),
+    highlights: tool.schema.array(
+      tool.schema.object({
+        id: tool.schema.string().describe("唯一标识, 如 H1, H2"),
+        content: tool.schema.string().describe("评价内容"),
+        citation: tool.schema.string().describe("原文引用"),
+        technique: tool.schema.string().optional().describe("写作技法"),
+      })
+    ).optional().describe("亮点点评对象数组"),
     abstract: tool.schema.string().optional().describe("文章摘要"),
-    highlights: tool.schema.array(tool.schema.string()).optional().describe("精彩句子/金句点评列表"),
     approach: tool.schema.string().optional().describe("创作方法与过程"),
-    topic: tool.schema.string().optional().describe("命题原文, 分析理解与切入角度"),
+    topic: tool.schema.object({
+      original: tool.schema.string().describe("命题原文"),
+      keywords: tool.schema.array(tool.schema.string()).describe("分类话题关键词"),
+      analysis: tool.schema.string().optional().describe("分析解读"),
+    }).optional().describe("主题相关信息"),
   },
   async execute(args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()
@@ -61,96 +104,55 @@ export default tool({
       throw new Error(`文章文件不存在: ${articlePath}`)
     }
 
-    const text = fs.readFileSync(articlePath, "utf-8")
+    const articleDir = path.dirname(articlePath)
+    const articleName = path.basename(articlePath, '.txt')
+    const metaPath = path.join(articleDir, `${articleName}.meta.json`)
 
     // Check if metadata already exists
-    if (text.trimEnd().endsWith("---")) {
-      // Check if there's already a metadata block
-      const lastPart = text.trimEnd().split("\n").slice(-5).join("\n")
-      if (lastPart.includes("Title:") || lastPart.includes("Score:")) {
-        throw new Error(`文章已有元数据区块. 请确认后直接进入归档步骤.`)
-      }
+    if (fs.existsSync(metaPath)) {
+      throw new Error(`元数据文件已存在: ${metaPath}. 请确认后直接进入归档步骤.`)
     }
+
+    const text = fs.readFileSync(articlePath, "utf-8")
 
     const title = extractTitle(text)
     const wordCount = countChinese(text)
-    const titleStr = title
 
     // Score: parameter > review-report.md > null
     let score: number | null = args.score ?? null
     if (score === null) {
       score = extractScore(path.join(base, "tmp", "review-report.md"))
     }
-    const scoreStr = score !== null ? String(score) : "N/A"
 
-    // Word count
     const requiredStr = args.requiredWords ?? "Unspec"
 
-    // Build metadata block
-    const lines: string[] = []
-    lines.push("")
-    lines.push("---")
-    lines.push(`Title: "${titleStr}"`)
-    lines.push(`Score: ${scoreStr}`)
-
-    // Reason for deduction
-    if (args.reasonForDeduction && args.reasonForDeduction.length > 0) {
-      lines.push("Reason for deduction: [")
-      for (const r of args.reasonForDeduction) {
-        lines.push(`    "${r}",`)
-      }
-      lines.push("]")
-    } else {
-      lines.push("Reason for deduction: []")
+    // Build metadata JSON
+    const metadata: ArticleMetadata = {
+      title,
+      score,
+      deductions: args.deductions ?? [],
+      highlights: args.highlights ?? [],
+      wordCount,
+      requiredWords: requiredStr,
+      abstract: args.abstract,
+      approach: args.approach,
+      topic: args.topic,
     }
 
-    lines.push(`Word Count: ${wordCount} - Required: ${requiredStr}`)
-
-    // Abstract
-    if (args.abstract) {
-      lines.push("Abstract: {")
-      lines.push(`    ${args.abstract}`)
-      lines.push("}")
-    }
-
-    // Highlights
-    if (args.highlights && args.highlights.length > 0) {
-      lines.push("Highlight: [")
-      for (const h of args.highlights) {
-        lines.push(`    "${h}",`)
-      }
-      lines.push("]")
-    }
-
-    // Approach
-    if (args.approach) {
-      lines.push("Approach: {")
-      lines.push(`    ${args.approach}`)
-      lines.push("}")
-    }
-
-    // Topic
-    if (args.topic) {
-      lines.push("Topic: {")
-      lines.push(`    ${args.topic}`)
-      lines.push("}")
-    }
-
-    const metadata = lines.join("\n") + "\n"
-
-    // Append to file
-    // Remove trailing whitespace, then append metadata
-    const cleanText = text.trimEnd() + "\n"
-    fs.writeFileSync(articlePath, cleanText + metadata, "utf-8")
+    // Write JSON file
+    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2) + "\n", "utf-8")
 
     const summary = [
-      `元数据已追加: ${args.article}`,
-      `  Title: ${titleStr}`,
-      `  Score: ${scoreStr}`,
+      `元数据已生成: ${metaPath}`,
+      `  Title: ${title}`,
+      `  Score: ${score ?? "N/A"}`,
       `  Word Count: ${wordCount} - Required: ${requiredStr}`,
     ]
-    if (args.reasonForDeduction && args.reasonForDeduction.length > 0) {
-      summary.push(`  Deductions: ${args.reasonForDeduction.length} 项`)
+    if (args.deductions && args.deductions.length > 0) {
+      summary.push(`  Deductions: ${args.deductions.length} 项`)
+    }
+    if (args.highlights && args.highlights.length > 0) {
+      summary.push(`  Highlights: ${args.highlights.length} 项`)
     }
 
     return summary.join("\n")

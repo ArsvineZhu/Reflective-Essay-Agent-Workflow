@@ -23,10 +23,30 @@ function visPad(s: string, width: number): string {
   return s + ' '.repeat(Math.max(0, width - visWidth(s)))
 }
 
-function extractField(meta: string, field: string): string {
-  const re = new RegExp(`^${field}:\\s*(\\[[\\s\\S]*?\\])\\s*$`, 'm')
-  const m = meta.match(re)
-  return m ? m[1] : ''
+interface ArticleMetadata {
+  title: string
+  score: number
+  deductions: Array<{
+    id: string
+    content: string
+    severity: "low" | "medium" | "high"
+    citation?: string
+  }>
+  highlights: Array<{
+    id: string
+    content: string
+    citation: string
+    technique?: string
+  }>
+  wordCount: number
+  requiredWords: string
+  abstract?: string
+  approach?: string
+  topic?: {
+    original: string
+    keywords: string[]
+    analysis?: string
+  }
 }
 
 interface ArticleEntry {
@@ -90,25 +110,32 @@ export default tool({
         if (fname.startsWith('_')) continue
         if (!fname.endsWith('.txt')) continue
         const fp = join(outputDir, fname)
+        const metaPath = join(outputDir, fname.replace('.txt', '.meta.json'))
         try {
           const text = readFileSync(fp, 'utf-8')
 
-          const sm = text.match(/^Score:\s*(\d+)/m)
-          if (!sm) continue
-          const score = parseInt(sm[1], 10)
-          if (isNaN(score)) continue
+          // 必须从独立 JSON 文件读取元数据（不再向后兼容）
+          if (!existsSync(metaPath)) {
+            continue // 没有元数据，跳过
+          }
 
-          const tm = text.match(/^Title:\s*"(.+?)"/m)
-          const title = tm ? tm[1] : fname
+          const meta = JSON.parse(readFileSync(metaPath, 'utf-8')) as ArticleMetadata
+          const title = meta.title
+          const score = meta.score ?? 0
 
-          const sepIdx = text.indexOf('\n---\n')
-          const body = sepIdx === -1 ? text : text.substring(0, sepIdx)
-          const meta = sepIdx === -1 ? '' : text.substring(sepIdx + 5)
+          // 格式化高亮与扣分内容用于显示
+          const highlightStr = meta.highlights.length > 0
+            ? JSON.stringify(meta.highlights.map(h => ({ id: h.id, content: h.content, citation: h.citation.substring(0, 50) })), null, 2)
+            : ''
 
-          const highlight = extractField(meta, 'Highlight')
-          const deduction = extractField(meta, 'Reason for deduction')
+          const deductionStr = meta.deductions.length > 0
+            ? JSON.stringify(meta.deductions.map(d => ({ id: d.id, content: d.content, severity: d.severity })), null, 2)
+            : ''
 
-          entries.push({ score, title, fname, body, highlight, deduction })
+          // 文章正文（txt 文件已干净，无需去除元数据块）
+          const body = text
+
+          entries.push({ score, title, fname, body, highlight: highlightStr, deduction: deductionStr })
         } catch {
           continue
         }
