@@ -25,7 +25,7 @@ function visPad(s: string, width: number): string {
 
 interface ArticleMetadata {
   title: string
-  score: number
+  score: number | null
   deductions: Array<{
     id: string
     content: string

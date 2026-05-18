@@ -33,11 +33,15 @@ interface ArticleMeta {
   structure: string
   wordCount: number
   fileModified: number
+  abstract: string
+  approach: string
+  topicOriginal: string
+  topicAnalysis: string
 }
 
 interface ArticleMetadata {
   title: string
-  score: number
+  score: number | null
   deductions: Array<{
     id: string
     content: string
@@ -113,16 +117,17 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
       // 从新结构提取扣分内容（用于问题识别）
       const deductionContents = meta.deductions.map(d => d.content)
 
-      // 提取关键词（从 topic.keywords + abstract + title）
+      // 提取关键词（从 topic.keywords + abstract + approach + topic.original/analysis + title）
       const topicKeywords = meta.topic?.keywords ?? []
-      const allTopicText = title + ' ' + (meta.abstract ?? '') + ' ' + (meta.topic?.original ?? '')
+      const allTopicText = title + ' ' + (meta.abstract ?? '') + ' ' + (meta.approach ?? '') + ' ' + (meta.topic?.original ?? '') + ' ' + (meta.topic?.analysis ?? '')
       const topics = [...topicKeywords, ...simpleChineseSegment(allTopicText, lexicon.stopWords)].slice(0, 8)
 
       // 文章正文（txt 文件已干净，无需去除元数据块）
       const body = text
 
-      // 提取关键词
-      const keywords = simpleChineseSegment(title + ' ' + body, lexicon.stopWords)
+      // 提取关键词（包含正文和元数据中的主题信息）
+      const metaTextForKeywords = (meta.abstract ?? '') + ' ' + (meta.approach ?? '') + ' ' + (meta.topic?.original ?? '') + ' ' + (meta.topic?.analysis ?? '')
+      const keywords = simpleChineseSegment(title + ' ' + body + ' ' + metaTextForKeywords, lexicon.stopWords)
 
       // 使用技法词库识别使用的技法（同时使用 citation 作为证据）
       const detectedTechniques = detectTechniques(body, [...highlightContents, ...highlightCitations], lexicon)
@@ -160,7 +165,11 @@ function buildIndex(outputDir: string, basePath: string): ArticleIndex {
         keywords,
         structure,
         wordCount: countChineseChars(body, true),
-        fileModified: stat.mtime.getTime()
+        fileModified: stat.mtime.getTime(),
+        abstract: meta.abstract ?? "",
+        approach: meta.approach ?? "",
+        topicOriginal: meta.topic?.original ?? "",
+        topicAnalysis: meta.topic?.analysis ?? "",
       })
     } catch (e) {
       console.error('处理文章失败:', fname, e)
@@ -448,6 +457,14 @@ function formatOutput(matches: MatchResult[], mode: string, topic: string, total
       lines.push(`[主题分类] ${matchedCategories.join(' · ')}`)
     }
 
+    // 命题与分析
+    if (article.topicOriginal) {
+      lines.push(`[命题] ${article.topicOriginal}`)
+    }
+    if (article.topicAnalysis) {
+      lines.push(`[分析] ${article.topicAnalysis}`)
+    }
+
     // 结构类型
     lines.push(`[结构类型] ${article.structure}`)
 
@@ -459,6 +476,18 @@ function formatOutput(matches: MatchResult[], mode: string, topic: string, total
     // 匹配理由
     if (matchReasons.length > 0) {
       lines.push(`[匹配理由] ${matchReasons.slice(0, 2).join(';')}`)
+    }
+
+    // 文章摘要
+    if (article.abstract) {
+      lines.push('')
+      lines.push(`[文章摘要] ${article.abstract}`)
+    }
+
+    // 创作方法
+    if (article.approach) {
+      lines.push('')
+      lines.push(`[创作方法] ${article.approach}`)
     }
 
     // 可学习技法

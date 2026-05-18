@@ -52,10 +52,15 @@ function renderCriticJson(content: string): string {
 
     if (data.item_results && data.item_results.length > 0) {
       result.push("\n### 逐项结果")
-      result.push("\n| 项 | 结果 | 说明 |")
-      result.push("\n|----|------|------|")
+      result.push("\n| 项 | 结果 | 说明 | 引用 |")
+      result.push("\n|----|------|------|------|")
       for (const item of data.item_results) {
-        result.push(`\n| ${item.item} | ${item.result} | ${item.note} |`)
+        const cit = item.citation
+          ? item.citation.length > 60
+            ? item.citation.slice(0, 60) + "..."
+            : item.citation
+          : ""
+        result.push(`\n| ${item.item} | ${item.result} | ${item.note} | ${cit} |`)
       }
     }
 
@@ -100,29 +105,16 @@ function renderReaderJson(content: string): string {
 
     result.push(`### ${data.style || "读者"}`)
 
-    if (data.quoted_lines && data.quoted_lines.length > 0) {
+    // Render highlights
+    if (data.metadata_highlights && data.metadata_highlights.length > 0) {
       result.push("\n")
-      for (const line of data.quoted_lines) {
-        result.push(`\n> "${line}"`)
+      for (const h of data.metadata_highlights) {
+        result.push(`\n> "${h.citation}"`)
       }
     }
 
     if (data.free_response) {
       result.push(`\n\n${data.free_response}`)
-    }
-
-    if (data.touching_points && data.touching_points.length > 0) {
-      result.push("\n\n**最被打动的段落**:")
-      for (const point of data.touching_points) {
-        result.push(`\n- ${point}`)
-      }
-    }
-
-    if (data.critical_points && data.critical_points.length > 0) {
-      result.push("\n\n**关键质疑**:")
-      for (const point of data.critical_points) {
-        result.push(`\n- ${point}`)
-      }
     }
 
     if (data.ai_suspicion && data.ai_suspicion.length > 0) {
@@ -275,6 +267,54 @@ export default tool({
         }
         const content = fs.readFileSync(rp, "utf-8").trim()
         parts.push(`\n\n${renderReaderJson(content)}`)
+      }
+    }
+
+    // --- metadata summary (structured data for append-metadata) ---
+    {
+      parts.push("\n\n---\n\n## 元数据摘要")
+      parts.push("\n\n以下结构化数据可直接用于 `append-metadata` 工具参数.\n")
+
+      // Extract deductions from critic reports
+      const allDeductions: string[] = []
+      for (const sp of srcs.map(resolve)) {
+        if (!fs.existsSync(sp)) continue
+        try {
+          const content = fs.readFileSync(sp, "utf-8")
+          const data = JSON.parse(content)
+          if (data.deductions && data.deductions.length > 0) {
+            for (const d of data.deductions) {
+              allDeductions.push(JSON.stringify(d, null, 4))
+            }
+          }
+        } catch { /* skip unparseable */ }
+      }
+
+      if (allDeductions.length > 0) {
+        parts.push("\n### deductions")
+        parts.push("\n```json\n[\n" + allDeductions.join(",\n") + "\n]\n```")
+      }
+
+      // Extract highlights from reader reports
+      const allHighlights: string[] = []
+      if (args.readers) {
+        for (const rp of args.readers.map(resolve)) {
+          if (!fs.existsSync(rp)) continue
+          try {
+            const content = fs.readFileSync(rp, "utf-8")
+            const data = JSON.parse(content)
+            if (data.metadata_highlights && data.metadata_highlights.length > 0) {
+              for (const h of data.metadata_highlights) {
+                allHighlights.push(JSON.stringify(h, null, 4))
+              }
+            }
+          } catch { /* skip unparseable */ }
+        }
+      }
+
+      if (allHighlights.length > 0) {
+        parts.push("\n### highlights")
+        parts.push("\n```json\n[\n" + allHighlights.join(",\n") + "\n]\n```")
       }
     }
 

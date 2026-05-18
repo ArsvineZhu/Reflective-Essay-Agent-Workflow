@@ -41,8 +41,22 @@ interface ComputedResult {
   citation?: string
 }
 
+interface DeductionEntry {
+  id: string
+  content: string
+  severity: "low" | "medium" | "high"
+  citation?: string
+}
+
+function mapSeverity(severity: number): "low" | "medium" | "high" {
+  if (severity <= 1) return "low"
+  if (severity <= 2) return "medium"
+  return "high"
+}
+
 interface CriticReport {
   report_type: string
+  article: string
   verdict: string
   score: number
   deduction_detail: {
@@ -58,8 +72,10 @@ interface CriticReport {
     result: string
     severity: number
     note: string
+    citation?: string
     occurrences?: number
   }>
+  deductions: DeductionEntry[]
   common_errors?: Array<Record<string, unknown>>
   danger_signals?: Array<Record<string, unknown>>
   overall_assessment?: string
@@ -130,8 +146,18 @@ export default tool({
     const verdict = (severeReject || rejectByThreshold) ? "REJECT" : "PASS"
 
     // --- build report ---
+    const deductions: DeductionEntry[] = computedResults
+      .filter(r => r.result !== "PASS")
+      .map((r, i) => ({
+        id: r.item.split(" ")[0],
+        content: r.note,
+        severity: mapSeverity(r.severity),
+        citation: r.citation,
+      }))
+
     const report: CriticReport = {
       report_type: args.report_type,
+      article: args.article,
       verdict,
       score,
       deduction_detail: {
@@ -143,6 +169,7 @@ export default tool({
         items: computedResults,
       },
       item_results: args.item_results,
+      deductions,
     }
 
     if (args.common_errors && args.common_errors.length > 0) report.common_errors = args.common_errors
