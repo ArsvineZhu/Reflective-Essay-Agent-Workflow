@@ -18,7 +18,7 @@
   ↓ 交互研究 → 简报确认
 新会话 (Esperanta) → 写作完成 → 展示路径与摘要
   ↓ 
-新会话 (Kaltsit) → 审校 ./output/xxx.txt
+新会话 (Kaltsit) → 审校 xxx.txt
   ↓ 通过 / 不通过
 修订 → 交付 → 归档
 
@@ -65,7 +65,9 @@
 
 ## 读者体系
 
-每类至少选 1 个，可根据主题多选：
+每类至少选 1 个，可根据主题多选。完整风格描述通过 `load-reader-style` 工具按 ID 加载，不嵌入代理提示词以节省 token。
+
+每种风格包含 **固有偏见警示**，提示该读者类型的预设倾向并提供补偿机制，确保公正评判。
 
 | 类别 | 可选风格 | 评估维度 |
 |------|---------|----------|
@@ -85,6 +87,8 @@
 | `archive` | Priestess | 归档终稿 + 全部中间文件，清理 tmp/ |
 | `count` | Priestess | 统计中文字数（排除标题和元数据） |
 | `essence` | Esperanta | **高分范文工具**：按分数列出/指定文章名获取原文/列出全部文章清单 |
+| `load-persona` | Priestess, Kaltsit | 按代理 ID 加载人设风格，仅非工作交流时使用 |
+| `load-reader-style` | Reader | 按 style ID 加载完整读者风格描述 |
 | `load-references` | Esperanta | 加载全部 6 个参考源技法分析 |
 | `write-critic-report` | critic-* | 写入批评审校报告（自动编号 + 计算分数） |
 | `write-reader-report` | Reader | 写入读者印象（自动编号） |
@@ -111,6 +115,7 @@ reflective-essay-workflow/
 │   ├── prompts/
 │   │   └── common.md       # 风格定义（自动加载）
 │   ├── tools/              # 自定义工具（TypeScript）
+│   ├── lexicon/            # 词库 + 读者风格 + 人设（JSON）
 │   ├── plugins/            # word-count-hook 插件
 │   ├── package.json
 │   └── tsconfig.json

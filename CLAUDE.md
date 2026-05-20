@@ -87,13 +87,13 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 |-------|------|-------|-------|------|
 | **Priestess** | primary | ds-v4-flash | `#b5d2e9` 淡蓝灰白 | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, generates metadata JSON for finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
 | **Esperanta** | primary | ds-v4-pro (max) | `#7CFF5E` 浅荧光绿 | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
-| **Kaltsit** | primary | ds-v4-flash | `#7CFF5E` 浅荧光绿 | Review orchestrator. Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
+| **Kaltsit** | primary | ds-v4-flash | `#7CFF5E` 浅荧光绿 | Review orchestrator. Selects readers by compact style ID table (no full descriptions). Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
 | **Civilight Eterna** | primary | ds-v4-flash | `#deb3bd` 浅粉 | Code analysis & planning (魔王). Empathetic requirement clarification, auto prompt optimization, produces implementation plans to `plan/implementation-plan.md`. |
 | **critic-originality** | subagent | ds-v4-flash | — | Checks A1-A4: sentence reuse, material borrowing, metaphor overlap, ending similarity against `ref/` |
 | **critic-structure** | subagent | ds-v4-flash | — | Checks B1-B12: spiral naturalness, golden sentences, metaphor consistency, parallelism, anchoring, open endings |
 | **critic-voice** | subagent | ds-v4-flash | — | Checks C1-C8: "we" voice, exclamation marks, preaching, academic citations, scaffolding, language compliance |
 | **critic-ai** | subagent | ds-v4-flash | — | Checks D1-D8: burstiness, syntactic repetition, transition scaffolding, token probability, emotional flatness, golden sentence patterns, example specificity, safety zone overuse |
-| **Reader** | subagent | ds-v4-flash | — | 5 reader types across emotion/reason/language/experience/safety categories. Writes reader reports via `write-reader-report` tool |
+| **Reader** | subagent | ds-v4-flash | — | 5 reader types across emotion/reason/language/experience/safety categories. Loads full style via `load-reader-style` tool by ID. Writes reports via `write-reader-report` tool. |
 
 ### Context Passing (file-based, never via conversation history)
 
@@ -117,48 +117,29 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 
 ### Reference Sources (`ref/`)
 
-6 categories of analysis + original texts:
-
-| Source | Path | Technique Focus |
-|--------|------|----------------|
-| 南方周末新年献词 (1997-2026) | `ref/southern-weekly/` | Crowd structure, ritual tone, layered parallelism |
-| 明日方舟/鹰角文案 | `ref/arknights/` | Paradox rhetoric, metaphor-as-reason, restrained lyricism |
-| 理想、未来与存续 | `ref/ideals-future/` | Spiral structure, disenchantment, grounded anchoring |
-| 游戏深度文案 | `ref/game-narratives/` | Grounded farewell, structural mirroring, Rashomon narrative |
-| 中国悼文/纪念文 | `ref/chinese-elegies/` | Detail anchoring, ending tension, unsaid restraint |
-| 中文非虚构写作 | `ref/chinese-nonfiction/` | Fragmented prose, ambiguity preservation |
-
-Each has an `analysis.md` that Esperanta must read via `load-references` tool before writing.
+6 categories: 南方周末, 明日方舟, 理想/未来/存续, 游戏深度文案, 中国悼文, 中文非虚构. Each has `analysis.md` loaded by Esperanta via `load-references`.
 
 ### Thematic Lexicon (`.opencode/lexicon/`)
 
-7 files powering the `recommend` tool:
-
-| File | Type | Purpose |
-|------|------|---------|
-| `cilin.txt` | 17,817 synonym groups | 哈工大同义词词林扩展版, used by `recommend(updateLexicon=true)` to auto-expand concept/topic/structure lexicons |
-| `concept-mapping.json` | 19 concept groups | 概念映射 (家庭/愧疚/成长/异化/孤独/焦虑/自由/意义...), each with 同义词/近义词/相关词 |
-| `topic-lexicon.json` | 15 topic categories | 话题分类关键词 (家庭与亲情/互联网与文化/城市与生活/死亡与意义...), used for article indexing and auto-classification |
-| `technique-lexicon.json` | 12+ technique patterns | 写作技法关键词 (螺旋结构/细节锚定/悖论修辞/排比分层...), used for technique detection |
-| `issue-patterns.json` | Issue pattern library | 常见写作问题模式 (套话/空洞/跳跃/说教...), used for weakness detection |
-| `structure-patterns.json` | 3 detection patterns | 结构检测种子词 + Cilin expanded words (转折词/时间标记/排比词), used by `detectStructureType()` |
-| `stop-words.json` | 700+ stop words | 中文停用词, used by `simpleChineseSegment()` for keyword filtering |
+9 files: `cilin.txt` (synonym groups), 8 JSON lexicons for concept-mapping, topic-classification, technique-detection, issue-patterns, structure-patterns, stop-words, reader-styles, and agent-personas.
 
 ### Custom Tools (`.opencode/tools/`)
 
-Written in TypeScript, run via Bun. All tools are auto-discovered (no need to declare in `opencode.json`). `lexicon-loader.ts` is a library module (not a tool), imported by other tools.
+Written in TypeScript via Bun. Auto-discovered. `lexicon-loader.ts` is a library module.
 
 | Tool | Caller | Purpose |
 |------|--------|---------|
-| `aggregate-report` | Kaltsit | Merge critic + reader reports into `tmp/review-report.md` |
-| `append-metadata` | Priestess | Generate independent metadata JSON file `output/<name>.meta.json` (auto-extract title/word-count, auto-read score, optional word-count penalty) |
-| `archive` | Priestess | Archive final article + all intermediate files + `.meta.json`, clear `tmp/` |
-| `count` | Priestess / plugin | Count Chinese characters in `output/*.txt` (excludes title). Logic embedded in `word-count-hook` |
-| `essence` | Esperanta | **High-score article browser**. `essence()` → score >80 listing; `essence(list=true)` → all articles; `essence(name="filename")` → full text |
+| `aggregate-report` | Kaltsit | Merge critic + reader reports → `tmp/review-report.md` |
+| `append-metadata` | Priestess | Generate `output/<name>.meta.json` with title/score/wordCount/etc |
+| `archive` | Priestess | Archive article + intermediates to `archive/`, clear `tmp/` |
+| `count` | Priestess / plugin | Count Chinese chars in `output/*.txt` (excludes title) |
+| `essence` | Esperanta | Browse high-score articles by score/tag/name |
+| `load-persona` | Priestess, Kaltsit | Load character persona by agent ID (kaltsit/priestess) |
+| `load-reader-style` | Reader | Load full reader style by style ID |
 | `load-references` | Esperanta | Load all 6 `analysis.md` → `tmp/_all-analysis.md` |
-| `recommend` | Esperanta | **Recommendation engine**: semantic topic matching + technique analysis. Args: `topic`, `limit`, `minScore`, `techniques`, `categories`, `updateLexicon` (uses Cilin to auto-expand lexicons). |
-| `write-critic-report` | critic-* | Write critic review JSON with auto-numbering, auto-scoring (100 - deductions), verdict (PASS/REJECT) |
-| `write-reader-report` | Reader | Write reader response JSON with structured reader style, sentiments, strengths/weaknesses |
+| `recommend` | Esperanta | Topic-matched article recommendation with technique analysis |
+| `write-critic-report` | critic-* | Write critic review JSON with scoring and verdict |
+| `write-reader-report` | Reader | Write reader report JSON with structured feedback |
 
 ### Plugins (`.opencode/plugins/`)
 
@@ -199,8 +180,8 @@ Optional — Civilight Eterna (魔王):
 
 - Agent definitions: `.opencode/agents/*.md` (9 agents)
 - Style rules (auto-loaded): `.opencode/prompts/common.md`
-- Custom tools: `.opencode/tools/*.ts` (9 tools + 1 library module `lexicon-loader.ts`)
-- Lexicon databases: `.opencode/lexicon/` (7 files: cilin.txt + 6 JSON lexicons)
+- Custom tools: `.opencode/tools/*.ts` (11 tools + 1 library module `lexicon-loader.ts`)
+- Lexicon databases: `.opencode/lexicon/` (9 files: cilin.txt + 8 JSON lexicons)
 - Output directory: `output/` (all articles as `.txt` with separate `.meta.json` metadata)
 - Temp context: `tmp/` (cleared between sessions)
 - Plans: `plan/` (implementation plans from Civilight Eterna)
@@ -210,6 +191,8 @@ Optional — Civilight Eterna (魔王):
 - Config: `opencode.json`
 
 ## Reader Categories
+
+Each reader style includes **固有偏见警示** — acknowledging its inherent predisposition and providing compensation mechanisms.
 
 | Category | Available Styles | Evaluation Dimension |
 |----------|-----------------|---------------------|
@@ -223,115 +206,17 @@ Kaltsit must select at least 1 per category; can select more based on article th
 
 ## Code & Configuration Guidelines
 
-- **Punctuation in code/config files**: Minimize Chinese-specific quotation marks (「」『』) in all configuration files, markdown documentation, and code.
-- **Quote style**: Use English double quotes "" uniformly. A space must follow the closing quote only if content follows (example: "quote", not "quote").
-- **Spacing rule**: All English punctuation (, . : ; () "" '' ? !) must be followed by a space **only if there is more content after the punctuation**. No trailing space at end of line.
+- **Punctuation in code/config files**: Minimize Chinese-specific quotation marks in all configuration files, markdown documentation, and code.
+- **Quote style**: Use English double quotes "". A space must follow the closing quote only if content follows.
+- **Spacing rule**: All English punctuation must be followed by a space only if there is more content after the punctuation. No trailing space at end of line.
 
 ## Tool Runtime
 
-- Runtime: **Bun** (for all `.ts` tools in `.opencode/tools/`)
-- Dependency: `@opencode-ai/plugin` (for tool/plugin framework)
+- Runtime: **Bun** (all `.ts` tools in `.opencode/tools/`)
+- Dependency: `@opencode-ai/plugin`
 - MCP: **Exa** (deep web search, used by Priestess and Civilight Eterna)
 - Run `bun install` in `.opencode/` if tool dependencies change
 
-## Article Metadata Format
+## Article Metadata
 
-Finished articles have a separate metadata JSON file at `output/<name>.meta.json`, generated by Priestess via `append-metadata` tool. The JSON contains:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `title` | string | Article title (extracted from `# Title`) |
-| `score` | number\|null | Comprehensive score (0-100, null if N/A) |
-| `deductions` | array | Deduction reasons with id/content/severity/citation |
-| `highlights` | array | Highlighted sentences with content/citation/technique |
-| `wordCount` | number | Chinese character count (excludes title) |
-| `requiredWords` | string | Required word count (e.g. `"1200"`, `"700-900"`, `"Unspec"`) |
-| `abstract` | string | Article summary |
-| `approach` | string | Creative process and writing decisions |
-| `topic` | object | `original` (topic text), `keywords` (categories), `analysis` (optional) |
-
-If `requiredWords` is a single number (e.g. "1200") or a range ("1000-1200") and actual word count deviates beyond 10% (or outside range), 5 points are deducted from score automatically.
-
-## Style Principles (from `common.md`, summary)
-
-1. **Gravity rhetoric**: Power from subject weight, not exclamation marks
-2. **朴素崇高**: Use everyday units (一口饭, 一束光) for heavy topics
-3. **Spiral论证**: 立→破→困→转→再立, not linear A→B→C
-4. **Disenchanted idealism**: Acknowledge darkness fully, then still choose
-5. **We-voice**: "我们" not "你" — shoulder-to-shoulder, not teacher-to-student
-6. **Grounded anchoring**: Every abstraction → sensory anchor
-7. **Paradox tension**: Keep contradictions unresolved
-8. **Functional parallelism**: Each parallel serves argument, not decoration
-9. **Metaphor承载**: Core metaphor carries structural weight, not decoration
-10. **Detail anchoring**: Show, never tell with adjectives
-11. **Don't conclude for reader**: Leave the bow unstrung
-
-## Quick Reference
-
-### Agent Switching (in OpenCode TUI)
-Press `Tab` to open the agent selector, or type at the prompt:
-```
---agent priestess          # Research & orchestration (color: 淡蓝灰白 #b5d2e9)
---agent esperanta          # Writing & revision (color: 浅荧光绿 #7CFF5E)
---agent kaltsit            # Review orchestration (color: 浅荧光绿 #7CFF5E)
---agent civilight-eterna   # Code analysis & planning (color: 浅粉 #deb3bd)
-```
-
-### Common Prompt Patterns
-```
-# Priestess
-"命题：愧疚教育，字数：1200"
-"继续研究，补充更多案例"
-"确认简报，进入写作"
-"文章已完成，开始交付"
-
-# Esperanta
-"研究简报已就绪：tmp/research-brief.md，开始写作"
-"根据 tmp/revision-notes.md 修改以下段落..."
-"查看高分范文推荐：recommend(主题='教育')"
-"更新词库后推荐：recommend(主题='愧疚教育', updateLexicon=true)"
-
-# Kaltsit
-"审校：output/愧疚教育.txt"
-"重新审校修改后的版本"
-
-# Civilight Eterna
-"分析这个代码任务：给 archive 工具添加 --dry-run 参数"
-"帮我规划这个功能的需求和实现路径"
-"自动优化并规划：在存档时自动打 Git 标签"
-"讨论一下这个 refactor 的方案"
-```
-
-### File Navigation
-```
-# List temp context files
-ls tmp/
-
-# View research brief
-cat tmp/research-brief.md
-
-# View review report
-cat tmp/review-report.md
-
-# View implementation plans
-ls plan/
-cat plan/implementation-plan.md
-
-# View finished articles
-ls output/
-cat output/*.txt
-
-# List lexicon databases
-ls .opencode/lexicon/
-
-# List plugins
-ls .opencode/plugins/
-```
-
-### Important Files to Know
-- `.opencode/prompts/common.md` — Core style rules, auto-loaded into essay-writing agents
-- `.opencode/agents/civilight-eterna.md` — Civilight Eterna (魔王) agent definition (does NOT load common.md)
-- `.opencode/lexicon/` — 7 lexicon files: cilin.txt (Cilin), concept-mapping.json, topic-lexicon.json, technique-lexicon.json, issue-patterns.json, structure-patterns.json, stop-words.json
-- `.opencode/plugins/` — word-count-hook.ts (write/edit hook)
-- `.opencode/commands/` — Custom command definitions
-- `plan/` — Implementation plans output by Civilight Eterna
+`output/<name>.meta.json` generated by Priestess via `append-metadata`. Fields: title, score, deductions, highlights, wordCount, requiredWords, abstract, approach, topic. Word count penalty: 5pts if outside ±10% of requiredWords.
