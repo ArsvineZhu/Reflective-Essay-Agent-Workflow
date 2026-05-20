@@ -27,7 +27,64 @@ function nextReaderNumber(base: string): string {
   return String(maxNum + 1).padStart(3, "0")
 }
 
+function toPosixPath(p: string): string {
+  return p.split(path.sep).join("/")
+}
+
+function articleNameFromPath(value: string): string {
+  const normalized = value.replace(/\\/g, "/")
+  const base = path.posix.basename(normalized)
+  return base.replace(/\.txt$/i, "")
+}
+
+function resolveArticle(base: string, input: string): { name: string, path: string } {
+  const article = (input || "").trim()
+  if (!article) throw new Error("article 不能为空")
+
+  const outputDir = path.join(base, "output")
+  if (!fs.existsSync(outputDir)) {
+    throw new Error(`未找到 output 目录: ${outputDir}`)
+  }
+
+  const exactPath = isAbsolute(article) ? article : path.join(base, article)
+  if (fs.existsSync(exactPath) && fs.statSync(exactPath).isFile()) {
+    return {
+      name: articleNameFromPath(exactPath),
+      path: toPosixPath(path.relative(base, exactPath)),
+    }
+  }
+
+  const wantedName = articleNameFromPath(article)
+  const txtFiles = fs.readdirSync(outputDir).filter(f => f.toLowerCase().endsWith(".txt"))
+  const matches = txtFiles.filter(f => path.basename(f, path.extname(f)) === wantedName)
+
+  if (matches.length === 0) {
+    const titleMatches = txtFiles.filter(f => {
+      const fullPath = path.join(outputDir, f)
+      const firstLine = fs.readFileSync(fullPath, "utf-8").split(/\r?\n/, 1)[0]?.trim() || ""
+      return firstLine.replace(/^#\s*/, "") === wantedName
+    })
+    matches.push(...titleMatches)
+  }
+
+  const uniqueMatches = [...new Set(matches)]
+  if (uniqueMatches.length === 0) {
+    throw new Error(`未在 output/ 中找到文章: ${article}. 请传入文章标题, 如 "我是公派的嘛"`)
+  }
+  if (uniqueMatches.length > 1) {
+    throw new Error(`文章名称不唯一: ${article}. 匹配到: ${uniqueMatches.join(", ")}`)
+  }
+
+  const filePath = path.join(outputDir, uniqueMatches[0])
+  return {
+    name: path.basename(uniqueMatches[0], path.extname(uniqueMatches[0])),
+    path: toPosixPath(path.relative(base, filePath)),
+  }
+}
+
 const VALID_LEVELS = ["高", "中", "低"]
+
+const STYLE_DIMENSIONS = "感性读者=共情程度, 怀旧型读者=怀旧强度, 共情型读者=共情深度, 怀疑论者=逻辑漏洞, 哲学型读者=前提审视, 实用主义者=实用价值, 审美型读者=语言质感, 翻译耳读者=中文自然度, 节奏型读者=节奏感, 普通路人=留存度, 亲历者型=真实感, 文化比较者=文化自觉, 锐度审查者=内容锐度, 套路督察官=套路密度, 权力审视者=操控痕迹, 庸俗读者=注意力留存, 完整性审查者=论证完整度"
 
 const highlightSchema = tool.schema.object({
   content: tool.schema.string().describe("文章亮点描述"),
@@ -41,19 +98,19 @@ const weaknessSchema = tool.schema.object({
 })
 
 export default tool({
-  description: "写入读者读后感, 返回文件路径和摘要行. 读者必须使用此工具, 禁止手动写文件. highlights 和 weaknesses 使用结构化对象(含 content/citation/technique).",
+  description: "写入读者读后感报告, 保存到 tmp/reader-NNN.json, 并返回可交给编排器的摘要行.",
   args: {
     article: tool.schema.string().describe(
-      "文章路径, 如 `./output/xxx.txt`. 读者已读取该文件, 此参数用于记录来源."
+      "文章名称. 不传路径, 不带 .txt 后缀. 例如收到 ./output/我是公派的嘛.txt 时传 `我是公派的嘛`. 工具会自动解析 output/ 下的同名 .txt 文件, 也兼容旧式路径输入."
     ),
     style: tool.schema.string().describe(
-      "读者风格名称, 如 `感性读者`, `怀疑论者`, `审美型读者`, `普通路人`, `AI 审查者` 等. 必须与分配的风格一致."
+      `读者风格名称. 必须与分配的风格或风格描述匹配; 如上游只给风格描述, 自行归类为最贴近的风格名称. 风格与评价维度: ${STYLE_DIMENSIONS}.`
     ),
     highlights: tool.schema.array(highlightSchema).describe(
-      "文章亮点列表. 每条包含 content(亮点描述) 和可选的 citation(原文引用)/technique(写作技法)."
+      "文章亮点列表. 必须是数组. 每条至少包含 content; 可选 citation/technique. citation 必须是文章中出现的精确短句."
     ),
     weaknesses: tool.schema.array(weaknessSchema).describe(
-      "文章缺点列表. 每条包含 content(问题描述) 和可选的 citation(原文引用)."
+      "文章缺点列表. 必须是数组. 每条至少包含 content; 可选 citation. citation 必须是文章中出现的精确短句."
     ),
     free_response: tool.schema.string().optional().describe(
       "自由感受补充. 简短写下读完的直觉感受或联想到的个人经历. 不要长篇大论, 3 句话以内."
@@ -65,7 +122,7 @@ export default tool({
       "整体感受总结. 一句话概括读完后的核心感受, 10-20 字. 例如: '被击中了, 像是看了一把自己的日记', '有观察的起点但停在表面'."
     ),
     evaluation: tool.schema.string().describe(
-      "评价维度: 程度. 根据风格对应的维度填写, 如 `共情程度：高`, `逻辑漏洞：低`, `语言质感：中`. 程度分三档: 高/中/低. 参考评价维度对照表."
+      `评价维度: 程度. 必须写成 "维度：程度", 如 "共情程度：高", "逻辑漏洞：低", "语言质感：中"; 程度只能是 高/中/低. 工具兼容全角和半角冒号. 风格对应维度: ${STYLE_DIMENSIONS}.`
     ),
     score: tool.schema.number().describe(
       "评分, 满分 100. 根据你的真实感受打分: 80+ 优秀, 60-79 合格, <60 有问题. 不必精确, 诚实即可."
@@ -74,10 +131,10 @@ export default tool({
   async execute(args, context) {
     // --- validation ---
     if (!args.style) throw new Error("style 不能为空")
-    if (args.highlights && !Array.isArray(args.highlights)) {
+    if (!Array.isArray(args.highlights)) {
       throw new Error("highlights 必须是数组")
     }
-    if (args.weaknesses && !Array.isArray(args.weaknesses)) {
+    if (!Array.isArray(args.weaknesses)) {
       throw new Error("weaknesses 必须是数组")
     }
     if (!args.overall_evaluation) throw new Error("overall_evaluation 不能为空")
@@ -90,7 +147,7 @@ export default tool({
       throw new Error(`score 超出范围: ${args.score}, 允许 0-100`)
     }
 
-    const evalParts = args.evaluation.split("：")
+    const evalParts = args.evaluation.split(/[:：]/)
     if (evalParts.length !== 2) {
       throw new Error(`evaluation 格式错误: "${args.evaluation}", 应为 "维度：程度" (如 "共情程度：高")`)
     }
@@ -112,13 +169,15 @@ export default tool({
     // --- write ---
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()
     const resolve = (p: string) => isAbsolute(p) ? p : path.join(base, p)
+    const articleRef = resolveArticle(base, args.article)
 
     const number = nextReaderNumber(base)
     const filename = `reader-${number}.json`
     const filePath = resolve(path.join("tmp", filename))
 
     const report = {
-      article: args.article,
+      article: articleRef.name,
+      article_path: articleRef.path,
       style: args.style,
       free_response: args.free_response || "",
       ai_suspicion: args.ai_suspicion || [],

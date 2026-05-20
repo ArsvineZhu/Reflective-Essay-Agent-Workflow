@@ -16,7 +16,7 @@ function isAbsolute(p: string): boolean {
 }
 
 export default tool({
-  description: "加载参考源技法分析并写入 `tmp/_all-analysis.md`, 调用后读取文件; Esperanta 写作前必须先调用此工具, 不可跳过.",
+  description: "加载参考源技法分析并写入 `tmp/_all-analysis.md`.",
   args: {},
   async execute(_args, context) {
     const base = (context.worktree && context.worktree !== "/") ? context.worktree : process.cwd()

@@ -214,62 +214,9 @@ permission:
 
 不要以文本形式返回报告内容. **必须使用 `write-critic-report` 工具写入文件**, 以路径指针交接.
 
-### 写入步骤
+完成全部检查后调用 `write-critic-report`。工具参数、字段格式和返回值以工具定义为准。
 
-1. 完成全部检查后, 调用 `write-critic-report` 工具
-2. 工具自动编号, 自动计算扣分和总分
-3. 工具返回摘要行, 直接输出该摘要行
+### 关键约束
 
-### 工具参数
-
-| 参数 | 说明 |
-|------|------|
-| `report_type` | `"AI 感审查"` |
-| `article` | 文章路径 |
-| `item_results` | 逐项检查结果数组，每项含 `item`/`result`/`severity`/`note`/`citation`（可选），可选 `occurrences`。**重要：对存在问题、弱点、批评等负面评价必须引用原文；结构等整体的、难以精确引用的除外** |
-| `overall_recommendation` | 整体建议文字 |
-
-### 重要格式说明
-
-对存在问题、弱点、批评等负面评价必须引用原文；结构等整体的、难以精确引用的除外。
-
-```typescript
-{
-  item: "D6 金句部署模式",
-  result: "DOUBT",
-  severity: 0.5,
-  note: "尾部有 2 处悖论收束，但来自论证张力而非模板",
-  citation: "不是 X，而是 Y"
-}
-```
-
-- REJECT/DOUBT 项必须引用原文，除非是结构等整体的、难以精确引用的
-- PASS 项不需要 `citation`
-- 引用内容必须是文中出现的精确文字
-- 多条引用用分号分隔
-
-### 调用示例
-
-```typescript
-write-critic-report(
-  report_type="AI 感审查",
-  article="./output/xxx.txt",
-  item_results=[
-    { item: "D1 突发度异常", result: "PASS", note: "段落长短参差, 有突发度", severity: 0 },
-    { item: "D2 句式模板重复", result: "PASS", note: "句式多样, 无模板重复", severity: 0 },
-    { item: "D3 过渡词脚手架", result: "PASS", note: "过渡自然", severity: 0 },
-    { item: "D4 词汇概率分布", result: "PASS", note: "有个人化用词选择", severity: 0 },
-    { item: "D5 情绪平坦度", result: "PASS", note: "情绪曲线有自然起伏", severity: 0 },
-    { item: "D6 金句部署模式", result: "DOUBT", note: "尾部有 2 处悖论收束, 但来自论证张力而非模板", severity: 0, citation: "不是 X, 而是 Y。" },
-    { item: "D7 举例特异性", result: "PASS", note: "例子有明显个人经历痕迹", severity: 0 },
-    { item: "D8 综合判断", result: "PASS", note: "1 项存疑, 总体通过", severity: 0 }
-  ],
-  overall_recommendation="AI 感较低, 通过"
-)
-```
-
-### 返回格式
-
-```
-tmp/review-004.json | PASS: N | DOUBT: 1 | REJECT: 0 | D6 金句有设计感但整体通过
-```
+- 只调用一次工具，不拆成多次
+- 直接输出工具返回的摘要行，而非报告全文或仅路径

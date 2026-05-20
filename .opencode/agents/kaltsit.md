@@ -136,17 +136,7 @@ task(subagent_type="reader", load_skills=[], run_in_background=true, description
 
 **第二波完成后**：收集剩余 3 位读者的摘要行。
 
-**批评子代理** 返回的摘要行格式：
-```
-<路径> | <判定: PASS/REJECT> | 存疑: N 项 | <问题简述>
-```
-示例：`tmp/review-001.json | PASS | 存疑: 1 项 | A3意象功能不同已放过`
-
-**读者子代理** 返回的摘要行格式：
-```
-<路径> | <读者编号> — <读者风格> | <一句话总评> | <评价维度>：<程度>
-```
-示例：`tmp/reader-001.json | 001 — 感性读者 | 读到"锅里给你留了饭"直接哭了 | 共情程度：高`
+批评子代理和读者子代理都会返回各自工具生成的摘要行。收集时保留原文，不要改写。
 
 禁止在未收到通知前调用 `background_output`——这是阻塞反模式。
 
@@ -160,19 +150,7 @@ task(subagent_type="reader", load_skills=[], run_in_background=true, description
    - 如果 `doubtCount >= 2` → `N 项未通过（存疑项≥2）`
    - 否则 → `全部通过`
 3. **收集摘要行**：将 4 份批评和 5 份读者（第一波 1 + 第二波 4）的返回摘要行分别收集为数组
-4. 使用 `aggregate-report` 工具整合，传入所有参数：
-
-```
-aggregate-report(
-  article="./output/xxx.txt",
-  sources=["tmp/review-001.json", "tmp/review-002.json", "tmp/review-003.json", "tmp/review-004.json"],
-  readers=["tmp/reader-001.json", "tmp/reader-002.json", "tmp/reader-003.json", "tmp/reader-004.json", "tmp/reader-005.json"],
-  critic_summaries=["tmp/review-001.json | PASS | 存疑: 0 项 | ...", "tmp/review-002.json | PASS | 存疑: 0 项 | ...", "tmp/review-003.json | PASS | 存疑: 0 项 | ...", "tmp/review-004.json | PASS | 存疑: 0 项 | ..."],
-  reader_summaries=["tmp/reader-001.json | 001 — 感性读者 | 读到了...哭了 | 共情程度：高", "tmp/reader-002.json | 002 — 怀疑论者 | 核心...同义反复 | 逻辑漏洞：低", "tmp/reader-003.json | 003 — 审美型读者 | 语言...太安全 | 语言质感：中", "tmp/reader-004.json | 004 — 普通路人 | 有点意思但没记住什么 | 留存度：中", "tmp/reader-005.json | 005 — 锐度审查者 | 有几处表述可能过于直接 | 内容锐度：中"],
-  output="tmp/review-report.md",
-  verdict="全部通过" | "N 项未通过（...）"
-)
-```
+4. 使用 `aggregate-report` 工具整合。工具参数、字段格式和返回值以工具定义为准。
 
 ### Step 5：阅读报告
 
@@ -220,10 +198,7 @@ Esperanta 会读取 tmp/review-report.md 了解修改项，改完会告诉你切
 
 
 **关键约束**：
-- 概览区的"批评摘要"和"读者摘要"由 `critic_summaries` / `reader_summaries` 参数驱动，Kaltsit 收集摘要行后传入
-- 批评报告详情直接嵌入子代理的原始报告全文（含 PASS/REJECT 标记和逐项结果表）
-- 读者感受直接嵌入原始读后感（含引用原文 + 自由写作 + 最打动段落 + 整体评价）
-- 最终判定是 `verdict` 参数的值
+- 将子代理返回的摘要行原样交给 `aggregate-report`
 - Kaltsit **不应**在读取后改写或总结该文件——内容已由工具聚合完成
 
 ---

@@ -141,68 +141,13 @@ permission:
 
 ### Step 2：生成元数据
 
-调用 `append-metadata` 工具，传入各字段：
-
-- `article` — 文章路径
-- `score` — 综合评分（可从 `tmp/review-report.md` 的"读者评分"行获取参考，再自己评价；也可不传，工具自动读取并写入）
-- `requiredWords` — 要求字数（如 `"800"`、`"700-900"`、`"Unspec"`）
-- `deductions` — 扣分理由对象数组，每项包含 `id`（检查项标识，如 A1、B3、C2）、`content`（扣分理由描述）、`severity`（严重程度：low/medium/high）、`citation`（原文引用，可选）
-- `highlights` — 亮点点评对象数组，每项包含 `id`（亮点标识，如 H1、H2）、`content`（点评内容）、`citation`（原文引用）、`technique`（写作技法，可选）
-- `abstract` — 文章核心摘要，概括主题
-- `approach` — 创作方法、研究路径与写作决策
-- `topic` — 主题对象，包含 `original`（命题原文）、`keywords`（分类话题关键词数组）、`analysis`（分析解读，可选）
-
-调用示例：
-
-```
-append-metadata(
-  article="output/xxx.txt",
-  score=78,
-  requiredWords="800-1200",
-  deductions=[
-    { id: "B1", content: "从单一案例到普遍化论述的过渡缺少中间论证", severity: "medium", citation: "由此可见，这就是为什么……" },
-    { id: "B5", content: "回旋镖比喻后叠加了第二个比喻体系，隐喻一致性受损", severity: "low" }
-  ],
-  abstract="以……为主线，揭示……。结尾退回对……的确认。",
-  highlights=[
-    { id: "H1", content: "三个递进短句完成定性，从伦理评判转入本体论描述", citation: "……", technique: "递进式排比" },
-    { id: "H2", content: "四个连续动作捕捉了一个'加害者'同时也是'饥饿者'的瞬间", citation: "……", technique: "动作锚定" }
-  ],
-  approach="以用户提出的……为起点，经四轮扩展研究覆盖……四个维度……",
-  topic={
-    original: "……",
-    keywords: ["愧疚教育", "家庭关系", "成长"],
-    analysis: "切入角度……"
-  }
-)
-```
-
-工具自动提取标题（`# 标题`）和字数（`count` 逻辑内嵌），从 `tmp/review-report.md` 读取综合评分（如未传 `score` 参数），生成独立的元数据 JSON 文件到 `output/<文章名>.meta.json`。
+调用 `append-metadata` 工具生成独立元数据 JSON。工具参数、字段格式和返回值以工具定义为准。
 
 > `wordCount` 由工具自动统计，禁止手动估算。
 
 ### Step 3：归档
 
-调用 `archive` 工具，传入文章路径：
-
-```
-archive(article="output/<文章名>.txt")
-```
-
-工具自动创建 `archive/YYYY-MM-DD-HHMM/` 目录，复制以下文件（已存在的复制，不存在的跳过）：
-
-```
-output/<文章>.txt
-output/<文章>.meta.json
-tmp/research-brief.md
-tmp/review-report.md
-tmp/_all-analysis.md
-tmp/review-*.json
-tmp/reader-*.json
-tmp/revision-notes.md
-```
-
-归档完成后自动清理 `tmp/`。
+调用 `archive` 工具归档文章与流程文件。工具参数、字段格式和返回值以工具定义为准。
 
 ### Step 4：输出
 

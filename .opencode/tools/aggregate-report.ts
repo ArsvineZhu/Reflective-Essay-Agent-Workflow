@@ -141,15 +141,15 @@ function renderReaderJson(content: string): string {
 }
 
 export default tool({
-  description: "将多份批评报告和读者感受合并为一份审校报告. 直接整合文件内容, 无需代理手动读取并重写.",
+  description: "将批评报告和读者感受聚合成一份审校报告, 保存到指定 Markdown 文件.",
   args: {
-    article: tool.schema.string().optional().describe("文章路径, 如 ./output/xxx.txt"),
-    sources: tool.schema.array(tool.schema.string()).describe("批评报告路径列表"),
-    readers: tool.schema.array(tool.schema.string()).optional().describe("读者感受报告路径列表"),
-    critic_summaries: tool.schema.array(tool.schema.string()).optional().describe("'批评'子代理返回摘要行列表"),
-    reader_summaries: tool.schema.array(tool.schema.string()).optional().describe("'读者'子代理返回摘要行列表"),
-    output: tool.schema.string().describe("输出文件路径, 如 tmp/review-report.md"),
-    verdict: tool.schema.string().optional().describe("最终判定文本"),
+    article: tool.schema.string().optional().describe("被审校文章路径或名称, 用于报告概览展示, 如 `./output/xxx.txt`."),
+    sources: tool.schema.array(tool.schema.string()).describe("批评报告 JSON 路径列表, 通常为 `tmp/review-001.json` 到 `tmp/review-004.json`."),
+    readers: tool.schema.array(tool.schema.string()).optional().describe("读者感受 JSON 路径列表, 通常为 `tmp/reader-001.json` 到 `tmp/reader-005.json`."),
+    critic_summaries: tool.schema.array(tool.schema.string()).optional().describe("批评子代理原样返回的摘要行列表; 顺序应与 sources 对应, 用于生成概览中的批评摘要."),
+    reader_summaries: tool.schema.array(tool.schema.string()).optional().describe("读者子代理原样返回的摘要行列表; 顺序应与 readers 对应, 用于生成概览中的读者摘要."),
+    output: tool.schema.string().describe("审校报告输出路径, 通常固定为 `tmp/review-report.md`."),
+    verdict: tool.schema.string().optional().describe("最终判定文本, 如 `全部通过`, `N 项未通过（N/4）`, `N 项未通过（存疑项≥2）`. 不传时工具按批评报告自动估算."),
   },
   async execute(args, context) {
     const srcs = args.sources

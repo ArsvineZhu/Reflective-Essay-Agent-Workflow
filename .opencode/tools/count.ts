@@ -14,9 +14,9 @@ function countChinese(text: string): number {
 }
 
 export default tool({
-  description: "统计中文文章字数. 传入 output/ 目录下的 .txt 文件路径, 返回纯中文字符数(已排除标题行).",
+  description: "统计中文文章字数, 返回排除标题行后的中文字符数.",
   args: {
-    filepath: tool.schema.string().describe("文章文件路径, 如 output/<filename>.txt"),
+    filepath: tool.schema.string().describe("文章文件路径. 通常传 output/ 目录下的 .txt 文件, 如 `output/<filename>.txt`."),
   },
   async execute(args, context) {
     const input = args.filepath

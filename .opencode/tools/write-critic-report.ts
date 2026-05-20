@@ -83,22 +83,22 @@ interface CriticReport {
 }
 
 export default tool({
-  description: "写入批评家审查报告. 自动编号, 自动计算扣分和总分. 批评家必须使用此工具, 禁止手动写文件.",
+  description: "写入批评家审查报告, 保存到 tmp/review-NNN.json, 自动计算扣分与判定, 并返回摘要行.",
   args: {
-    report_type: tool.schema.string().describe("报告类型, 如 `原创性审查`, `结构与技法`, `声音与合规`"),
-    article: tool.schema.string().describe("被审查的文章路径, 如 `./output/xxx.txt`"),
+    report_type: tool.schema.string().describe("报告类型. 按当前 critic 职责填写, 如 `原创性审查`, `结构与技法`, `声音与合规`, `AI 感审查`."),
+    article: tool.schema.string().describe("被审查的文章路径, 使用收到的文章路径, 如 `./output/xxx.txt`."),
     item_results: tool.schema.array(tool.schema.object({
-      item: tool.schema.string().describe("检查项名称, 如 `A1 句式套用`"),
-      result: tool.schema.string().describe("结果: `PASS` / `DOUBT` / `REJECT`"),
-      severity: tool.schema.number().describe("倍率: PASS=0, DOUBT=该项目标定的存疑倍率, REJECT=该项目标定的拒绝倍率"),
-      note: tool.schema.string().describe("对检查项目的情况进行说明"),
-      citation: tool.schema.string().optional().describe("原文引用, 用于 REJECT/DOUBT 项. 多条引用用分号分隔"),
-      occurrences: tool.schema.number().optional().describe("REJECT 时的问题数量, 默认为 1"),
-    })).describe("逐项检查结果数组"),
-    common_errors: tool.schema.array(tool.schema.any()).optional().describe("常见错误数组 (仅声音与合规审查使用)"),
-    danger_signals: tool.schema.array(tool.schema.any()).optional().describe("危险信号数组 (仅声音与合规审查使用)"),
-    overall_assessment: tool.schema.string().optional().describe("总体评估 (原创性审查使用)"),
-    overall_recommendation: tool.schema.string().optional().describe("整体建议 (结构与技法/声音与合规审查使用)"),
+      item: tool.schema.string().describe("检查项名称, 必须包含编号与名称, 如 `A1 句式套用`, `B2 螺旋自然性`, `C6 说教脚手架`, `D3 过渡词脚手架`."),
+      result: tool.schema.string().describe("检查结果, 只能使用 `PASS`, `DOUBT`, `REJECT`."),
+      severity: tool.schema.number().describe("扣分倍率. PASS 填 0; DOUBT/REJECT 按当前检查项判定表中的 severity 填写."),
+      note: tool.schema.string().describe("对该检查项的具体判断说明. 必须说明为什么 PASS/DOUBT/REJECT."),
+      citation: tool.schema.string().optional().describe("原文精确引用. REJECT/DOUBT 项必须提供, 除非问题是结构性整体问题而无法精确引用. 多条引用用分号分隔. PASS 项通常不需要."),
+      occurrences: tool.schema.number().optional().describe("REJECT 时的问题数量, 不传则默认为 1. DOUBT/PASS 通常不传."),
+    })).describe("逐项检查结果数组. 每个检查项都写一条结果; 工具会根据 result/severity/occurrences 自动计算总扣分、总分和 PASS/REJECT 判定."),
+    common_errors: tool.schema.array(tool.schema.any()).optional().describe("常见错误数组. 仅声音与合规审查需要时使用; 每项应包含 type/location/description 等可读字段."),
+    danger_signals: tool.schema.array(tool.schema.any()).optional().describe("危险信号数组. 仅声音与合规审查需要时使用; 每项应包含 signal/description 等可读字段."),
+    overall_assessment: tool.schema.string().optional().describe("总体评估. 原创性审查可用; 用一段话概括整体原创性风险."),
+    overall_recommendation: tool.schema.string().optional().describe("整体建议. 结构与技法、声音与合规、AI 感审查可用; 用一段话概括是否建议修改及重点."),
   },
   async execute(args, context) {
     // --- validation ---
