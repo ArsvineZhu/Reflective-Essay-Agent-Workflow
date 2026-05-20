@@ -21,6 +21,9 @@
 新会话 (Kaltsit) → 审校 ./output/xxx.txt
   ↓ 通过 / 不通过
 修订 → 交付 → 归档
+
+可选的规划环节（开发相关）:
+  新会话 (Civilight Eterna) → 分析代码任务 → 输出 plan/ 方案
 ```
 
 ## 代理角色
@@ -30,6 +33,7 @@
 | **Priestess** | ds-v4-flash | 编排者：对话研究，产出简报，协调审校，交付归档 |
 | **Esperanta** | ds-v4-pro (max) | 创作者：读 tmp/ + 参考源 → 写作 / 修订 |
 | **Kaltsit** | ds-v4-flash | 审校编排：派 4 个批评者 + 5 个读者，聚合报告 |
+| **Civilight Eterna** | ds-v4-flash | 代码分析规划 ：需求澄清、代码探索、输出方案至 plan/ |
 | **critic-originality** | ds-v4-flash | 原创性检查（A1-A4）：句式/意象/素材相似性 |
 | **critic-structure** | ds-v4-flash | 结构检查（B1-B12）：螺旋/金句/隐喻/锚定 |
 | **critic-voice** | ds-v4-flash | 文风检查（C1-C8）：共同体之声/合规性/流程 |
@@ -46,6 +50,7 @@
 | `tmp/_all-analysis.md` | `load-references` 工具 | Esperanta |
 | `tmp/review-report.md` | Kaltsit | Priestess / Esperanta |
 | `tmp/revision-notes.md` | Priestess | Esperanta |
+| `plan/implementation-plan.md` | Civilight Eterna | 用户 / 任意代理 |
 
 ## 参考源（6 类）
 
@@ -90,8 +95,9 @@
 |------|------|
 | Priestess 只写 tmp/，不写 output/ | 只研究不创作 |
 | Kaltsit + 子代理不写 output/ | 写作与评判分离 |
+| Civilight Eterna 只写 plan/，不写 tmp/ 或 output/ | 代码分析与文章写作分离 |
 | Esperanta 读 tmp/ 获取上下文 | task() 不传历史 |
-| common.md 自动加载 | 零手动步骤 |
+| common.md 对部分代理自动加载 | 零手动步骤 |
 | word-count-hook 写入时触发 | 零手动计数 |
 | 子代理存疑 ≥ 2 → 总体不通过 | 审校纪律 |
 | 归档包含所有中间文件 | 完整可追溯 |
@@ -111,6 +117,7 @@ reflective-essay-workflow/
 ├── ref/                    # 6 类参考源 + analysis.md
 ├── output/                 # 文章输出（.txt + 元数据）
 ├── tmp/                    # 临时上下文（会话间清空）
+├── plan/                   # 实现方案（Civilight Eterna 产出）
 ├── archive/                # 历史归档（永久保存）
 ├── workflow.md             # 详细工作流文档
 ├── SCORING.md              # 评分方法详解

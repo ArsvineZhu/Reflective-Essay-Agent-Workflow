@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **multi-agent writing workflow** built on OpenCode for crafting Chinese 思想随笔 (reflective essays). It runs as a series of coordinated agent sessions — each agent has a specific role and communicates exclusively through files in `tmp/`.
+This is a **multi-agent writing workflow** built on OpenCode for crafting Chinese 思想随笔 (reflective essays), with an additional code analysis & planning agent. It runs as a series of coordinated agent sessions — each agent has a specific role and communicates primarily through files in `tmp/` and `plan/`.
 
 Core philosophy: essays should be spiral explorations (not linear arguments), use "we" voice (not "you" preaching), anchor abstractions in sensory details, and never borrow examples from reference sources.
 
@@ -22,6 +22,7 @@ opencode agent list
 #    Type: --agent priestess
 #    Type: --agent esperanta
 #    Type: --agent kaltsit
+#    Type: --agent civilight-eterna
 
 # 4. Show agent help (在 TUI 中输入命令)
 #    Type: /help
@@ -43,6 +44,9 @@ ls -la .opencode/tools/
 ```bash
 # Clear temp files (清理临时文件)
 rm -rf tmp/*
+
+# Clear plan files (清理方案文件)
+rm -rf plan/*
 
 # List archives (查看历史归档)
 ls -la archive/
@@ -77,13 +81,14 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 
 ## Architecture
 
-### Agent Roles (defined in `.opencode/agents/`) — 8 agents total
+### Agent Roles (defined in `.opencode/agents/`) — 9 agents total
 
 | Agent | Mode | Model | Color | Role |
 |-------|------|-------|-------|------|
 | **Priestess** | primary | ds-v4-flash | `#b5d2e9` 淡蓝灰白 | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, generates metadata JSON for finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
 | **Esperanta** | primary | ds-v4-pro (max) | `#7CFF5E` 浅荧光绿 | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
 | **Kaltsit** | primary | ds-v4-flash | `#7CFF5E` 浅荧光绿 | Review orchestrator. Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
+| **Civilight Eterna** | primary | ds-v4-flash | `#deb3bd` 浅粉 | Code analysis & planning (魔王). Empathetic requirement clarification, auto prompt optimization, produces implementation plans to `plan/implementation-plan.md`. |
 | **critic-originality** | subagent | ds-v4-flash | — | Checks A1-A4: sentence reuse, material borrowing, metaphor overlap, ending similarity against `ref/` |
 | **critic-structure** | subagent | ds-v4-flash | — | Checks B1-B12: spiral naturalness, golden sentences, metaphor consistency, parallelism, anchoring, open endings |
 | **critic-voice** | subagent | ds-v4-flash | — | Checks C1-C8: "we" voice, exclamation marks, preaching, academic citations, scaffolding, language compliance |
@@ -96,12 +101,14 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 - `tmp/_all-analysis.md` — `load-references` tool → Esperanta
 - `tmp/review-report.md` — Kaltsit → Priestess / Esperanta
 - `tmp/revision-notes.md` — Priestess → Esperanta
-- `tmp/` is **cleared** each new session; `archive/` is permanent
+- `plan/implementation-plan.md` — Civilight Eterna → user/any agent
+- `tmp/` is **cleared** each new session; `archive/` is permanent; `plan/` is persistent
 
 ### Critical Constraints
 
 - Priestess writes only to `tmp/`, never to `output/`
 - Kaltsit + subagents never write to `output/` (judge/writer separation)
+- Civilight Eterna writes only to `plan/`, never to `tmp/` or `output/`
 - Esperanta reads `tmp/` for context (`task()` does NOT carry conversation history)
 - `common.md` is auto-loaded via `prompt: "{file:./.opencode/prompts/common.md}"` frontmatter
 - Plugins fire automatically: `word-count-hook` on `write`/`edit` to `output/*.txt`
@@ -182,16 +189,21 @@ Session 3 (Kaltsit):
 Decision point:
    ├─ IF PASS: return to Priestess session → append-metadata → archive
    └─ IF REJECT: Priestess writes tmp/revision-notes.md → Esperanta revises → Kaltsit re-reviews (unlimited iterations)
+
+Optional — Civilight Eterna (魔王):
+   Use before coding to analyze requirements, explore codebase, clarify edge cases, and produce implementation plans to plan/.
+   Can be invoked at any point where a code task needs structured planning.
 ```
 
 ## Key Paths
 
-- Agent definitions: `.opencode/agents/*.md` (8 agents)
+- Agent definitions: `.opencode/agents/*.md` (9 agents)
 - Style rules (auto-loaded): `.opencode/prompts/common.md`
 - Custom tools: `.opencode/tools/*.ts` (9 tools + 1 library module `lexicon-loader.ts`)
 - Lexicon databases: `.opencode/lexicon/` (7 files: cilin.txt + 6 JSON lexicons)
 - Output directory: `output/` (all articles as `.txt` with separate `.meta.json` metadata)
 - Temp context: `tmp/` (cleared between sessions)
+- Plans: `plan/` (implementation plans from Civilight Eterna)
 - Archives: `archive/YYYY-MM-DD-HHMM/` (6 archives)
 - Reference sources: `ref/*/`
 - Plugins: `.opencode/plugins/word-count-hook.ts`
@@ -219,7 +231,7 @@ Kaltsit must select at least 1 per category; can select more based on article th
 
 - Runtime: **Bun** (for all `.ts` tools in `.opencode/tools/`)
 - Dependency: `@opencode-ai/plugin` (for tool/plugin framework)
-- MCP: **Exa** (deep web search, used by Priestess)
+- MCP: **Exa** (deep web search, used by Priestess and Civilight Eterna)
 - Run `bun install` in `.opencode/` if tool dependencies change
 
 ## Article Metadata Format
@@ -259,9 +271,10 @@ If `requiredWords` is a single number (e.g. "1200") or a range ("1000-1200") and
 ### Agent Switching (in OpenCode TUI)
 Press `Tab` to open the agent selector, or type at the prompt:
 ```
---agent priestess    # Research & orchestration (color: 淡蓝灰白 #b5d2e9)
---agent esperanta    # Writing & revision (color: 浅荧光绿 #7CFF5E)
---agent kaltsit      # Review orchestration (color: 浅荧光绿 #7CFF5E)
+--agent priestess          # Research & orchestration (color: 淡蓝灰白 #b5d2e9)
+--agent esperanta          # Writing & revision (color: 浅荧光绿 #7CFF5E)
+--agent kaltsit            # Review orchestration (color: 浅荧光绿 #7CFF5E)
+--agent civilight-eterna   # Code analysis & planning (color: 浅粉 #deb3bd)
 ```
 
 ### Common Prompt Patterns
@@ -281,6 +294,12 @@ Press `Tab` to open the agent selector, or type at the prompt:
 # Kaltsit
 "审校：output/愧疚教育.txt"
 "重新审校修改后的版本"
+
+# Civilight Eterna
+"分析这个代码任务：给 archive 工具添加 --dry-run 参数"
+"帮我规划这个功能的需求和实现路径"
+"自动优化并规划：在存档时自动打 Git 标签"
+"讨论一下这个 refactor 的方案"
 ```
 
 ### File Navigation
@@ -294,6 +313,10 @@ cat tmp/research-brief.md
 # View review report
 cat tmp/review-report.md
 
+# View implementation plans
+ls plan/
+cat plan/implementation-plan.md
+
 # View finished articles
 ls output/
 cat output/*.txt
@@ -306,7 +329,9 @@ ls .opencode/plugins/
 ```
 
 ### Important Files to Know
-- `.opencode/prompts/common.md` — Core style rules, auto-loaded into ALL agents
+- `.opencode/prompts/common.md` — Core style rules, auto-loaded into essay-writing agents
+- `.opencode/agents/civilight-eterna.md` — Civilight Eterna (魔王) agent definition (does NOT load common.md)
 - `.opencode/lexicon/` — 7 lexicon files: cilin.txt (Cilin), concept-mapping.json, topic-lexicon.json, technique-lexicon.json, issue-patterns.json, structure-patterns.json, stop-words.json
 - `.opencode/plugins/` — word-count-hook.ts (write/edit hook)
 - `.opencode/commands/` — Custom command definitions
+- `plan/` — Implementation plans output by Civilight Eterna
