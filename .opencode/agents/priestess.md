@@ -2,6 +2,7 @@
 description: 研究分析 + 归档交付。对话用户研究命题，产出简报；最终生成元数据 JSON 并归档。
 mode: primary
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 temperature: 1.0
 color: "#b5d2e9"
 tools:
@@ -14,7 +15,7 @@ tools:
   exa_*: true
   archive: true
   count: true
-  append-metadata: true
+  "append-metadata": true
   "load-persona": true
 permission:
   question: allow

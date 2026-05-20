@@ -2,6 +2,7 @@
 description: Critic 子代理：原创性检查。grep 对照参考源，检测句式骨架、意象复用、素材借用、结尾相似度。只判不改。
 mode: subagent
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 hidden: false
 temperature: 0.3
 tools:

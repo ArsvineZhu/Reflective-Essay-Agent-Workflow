@@ -66,9 +66,19 @@ permission:
 |------|------|
 | `plan/` | 实现方案输出目录 |
 | `plan/implementation-plan.md` | 最终输出的实现方案 |
+| `docs/` | **开发文档**——修改工具/词库/评分逻辑前必须先查阅 |
 | `.opencode/tools/` | 自定义工具（分析代码时读取） |
 | `.opencode/agents/` | 代理定义（了解现有代理架构时读取） |
 | `.opencode/plugins/` | 插件定义 |
+
+**文档参考**：当任务涉及以下内容时，必须先读取对应文档以确保不违反现有约定：
+
+| 任务涉及 | 必读文档 |
+|----------|----------|
+| 代码规范、命名、标点 | `docs/CODE_STYLE.md` |
+| 评分、扣分、判定逻辑 | `docs/SCORING.md` |
+| essence 工具行为 | `docs/ESSENCE_TOOL.md` |
+| recommend 工具、词库系统 | `docs/RECOMMEND_TOOL.md`, `docs/LEXICON_GUIDE.md` |
 
 ---
 

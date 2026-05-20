@@ -2,6 +2,7 @@
 description: 审校编排器。接收文章路径，并行派 4 批评 + 5 读者，聚合输出。只编排不直接审。
 mode: primary
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 temperature: 0.7
 color: "#7CFF5E"
 prompt: "{file:./.opencode/prompts/common.md}"

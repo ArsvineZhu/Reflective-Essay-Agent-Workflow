@@ -1,4 +1,4 @@
-# 代码规范
+﻿# 代码规范
 
 ## 概述
 
@@ -32,7 +32,7 @@
 
 ### 正反示例
 
-✅ **正确写法**：
+**正确写法**：
 ```typescript
 description: "将多份批评报告和读者感受合并为一份审校报告. 直接整合文件内容, 无需代理手动读取并重写."
 
@@ -45,7 +45,7 @@ args: {
 // 如果文件不存在, 返回空结果
 ```
 
-❌ **错误写法**：
+**错误写法**：
 ```typescript
 description: "将多份批评报告和读者感受合并为一份审校报告。直接整合文件内容，无需代理手动读取并重写。"
 
@@ -64,16 +64,16 @@ args: {
 
 ### 核心原则
 
-所有代码文件和输出文本禁止使用 emoji 或其他 Unicode 图形符号. 表达应依靠文字本身的力量, 而非图形符号.
+所有代码文件和工具输出文本禁止使用 emoji 或其他 Unicode 图形符号. 表达应依靠文字本身的力量, 而非图形符号.
 
 ### 禁止范围
 
-| 类别 | 示例 | 说明 |
-|------|------|------|
-| 表情符号 | 😀 😂 🤔 😊 | 所有面部表情类 emoji |
-| 符号类 | 💡 ✅ ❌ 📊 ✓ ✗ | 灯泡、对勾、叉号等 |
-| 物品类 | 🔧 📁 💾 🎯 | 工具、文件、图标等 |
-| 天气/箭头 | ☀️ ❄️ ↓ → | 天气符号和箭头类 |
+| 类别 | 说明 |
+|------|------|
+| 表情符号 | 所有面部表情类 emoji |
+| 符号类 | 灯泡、对勾、叉号等符号类 emoji |
+| 物品类 | 工具、文件、图标等物品图形 |
+| 天气/箭头 | 天气符号和箭头类 emoji |
 
 ### 允许例外
 
@@ -83,18 +83,18 @@ args: {
 
 ### 正反示例
 
-✅ **正确写法**：
+**正确写法**：
 ```typescript
-lines.push('[统计] 共检索 100 篇文章')
-lines.push('[提示] 使用 essence() 查看完整原文')
-lines.push('[匹配] 关键词命中')
+lines.push("[统计] 共检索 100 篇文章")
+lines.push("[提示] 使用 essence() 查看完整原文")
+lines.push("[匹配] 关键词命中")
 ```
 
-❌ **错误写法**：
+**错误写法**：
 ```typescript
-lines.push('📊 共检索 100 篇文章')
-lines.push('💡 使用 essence() 查看完整原文')
-lines.push('✓ 关键词命中')
+lines.push("[统计] 共检索 100 篇文章")
+lines.push("[提示] 使用 essence() 查看完整原文")
+lines.push("[匹配] 关键词命中")
 ```
 
 ---
@@ -120,7 +120,7 @@ lines.push('✓ 关键词命中')
 
 ### 正反示例
 
-✅ **正确写法**：
+**正确写法**：
 ```typescript
 // 中文与英文之间留空格
 description: "集成 OpenCode 工具框架, 支持 5 种配置"
@@ -134,7 +134,7 @@ const arr = [1, 2, 3]
 function add(a, b) { return a + b }
 ```
 
-❌ **错误写法**：
+**错误写法**：
 ```typescript
 // 中文与英文之间无空格
 description: "集成OpenCode工具框架,支持5种配置"
@@ -184,8 +184,8 @@ export { ArticleMeta, MatchResult }
 
 ```typescript
 // 标准库导入在前
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
+import { readFileSync, existsSync } from "fs"
+import { join } from "path"
 
 // 然后是第三方库
 import { tool } from "@opencode-ai/plugin"
@@ -206,8 +206,8 @@ import { loadLexicon, calculateTopicMatchScore } from "./lexicon-loader"
  */
 export function loadLexicon(basePath: string): Lexicon {
   // 单行注释前面空一格
-  const lexiconDir = join(basePath, '.opencode', 'lexicon')
-  
+  const lexiconDir = join(basePath, ".opencode", "lexicon")
+
   // 不同逻辑块之间空行分隔
   // 缓存命中检查
   if (lexiconCache && cachePath === lexiconDir) {
@@ -239,7 +239,7 @@ export default tool({
   args: {
     param1: tool.schema.string()
       .describe("参数1说明. 清晰描述参数用途."),
-    param2: tool.schema.number().optional()
+    param2: tool.schema.string().optional()
       .describe("参数2说明. 可选参数需注明.")
   },
   async execute(args, context): Promise<string | ToolResult> {
@@ -275,7 +275,7 @@ try {
 } catch (e) {
   // 处理错误并返回用户友好的提示
   const message = e instanceof Error ? e.message : "未知错误"
-  return `操作失败: ${message}`
+  return "操作失败: ${message}"
 }
 ```
 
@@ -381,10 +381,10 @@ chore(tools): 更新所有工具描述的中文标点为英文标点
 
 建议配置 Git 钩子, 在提交前自动运行:
 
-```bash
-# 检查中文标点
-grep -n "[。，；：！？]" src/*.ts
+```powershell
+# 检查 TypeScript 编译
+cd .opencode; bunx --bun tsc --noEmit
 
-# 检查 emoji
-grep -n "[\u{1F300}-\u{1F9FF}][\u{2600}-\u{26FF}][\u{2700}-\u{27BF}]" .opencode/**/*.ts
+# 检查工具代码中是否含有 emoji
+cd .opencode; Select-String -Pattern "[^\x00-\x7F]{2,}" -Path "tools/*.ts"
 ```

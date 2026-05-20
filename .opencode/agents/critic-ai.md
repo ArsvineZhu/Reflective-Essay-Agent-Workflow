@@ -2,6 +2,7 @@
 description: Critic 子代理: AI 感审查. 检测文章的类 AI 特征: 突发度异常, 句式重复, 过渡脚手架, 词汇安全区, 情绪平坦度, 金句设计感, 举例通用性. 只判不改.
 mode: subagent
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 hidden: false
 temperature: 0.3
 tools:

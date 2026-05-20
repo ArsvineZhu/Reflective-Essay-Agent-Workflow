@@ -2,6 +2,7 @@
 description: Critic 子代理：声音与合规检查。判共同体之声、感叹号使用、是否说教、流程合规。只判不改。
 mode: subagent
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 hidden: false
 temperature: 0.3
 prompt: "{file:./.opencode/prompts/common.md}"

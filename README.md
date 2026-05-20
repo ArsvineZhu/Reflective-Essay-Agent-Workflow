@@ -31,7 +31,7 @@
 | 代理 | 模型 | 职责 |
 |------|------|------|
 | **Priestess** | ds-v4-flash | 编排者：对话研究，产出简报，协调审校，交付归档 |
-| **Esperanta** | ds-v4-pro (max) | 创作者：读 tmp/ + 参考源 → 写作 / 修订 |
+| **Esperanta** | ds-v4-pro | 创作者：读 tmp/ + 参考源 → 写作 / 修订 |
 | **Kaltsit** | ds-v4-flash | 审校编排：派 4 个批评者 + 5 个读者，聚合报告 |
 | **Civilight Eterna** | ds-v4-flash | 代码分析规划 ：需求澄清、代码探索、输出方案至 plan/ |
 | **critic-originality** | ds-v4-flash | 原创性检查（A1-A4）：句式/意象/素材相似性 |

@@ -2,6 +2,7 @@
 description: 普通读者。以特定阅读风格读一篇文章，写出真实的读后感。仅以读者身份回应，无预设。
 mode: subagent
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 hidden: false
 temperature: 1.0
 tools:

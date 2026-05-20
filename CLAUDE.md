@@ -86,7 +86,7 @@ The minimal `opencode.json` now only contains MCP configurations (like Exa searc
 | Agent | Mode | Model | Color | Role |
 |-------|------|-------|-------|------|
 | **Priestess** | primary | ds-v4-flash | `#b5d2e9` 淡蓝灰白 | Research + delivery/archive. Talks to user, writes `tmp/research-brief.md`, generates metadata JSON for finished articles, archives to `archive/YYYY-MM-DD-HHMM/` |
-| **Esperanta** | primary | ds-v4-pro (max) | `#7CFF5E` 浅荧光绿 | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
+| **Esperanta** | primary | ds-v4-pro | `#7CFF5E` 浅荧光绿 | Writer. Reads `tmp/` + ref sources, writes to `output/`. Also handles revision. |
 | **Kaltsit** | primary | ds-v4-flash | `#7CFF5E` 浅荧光绿 | Review orchestrator. Selects readers by compact style ID table (no full descriptions). Delegates to 4 critics + 5 readers in two waves, aggregates via `aggregate-report` tool → `tmp/review-report.md` |
 | **Civilight Eterna** | primary | ds-v4-flash | `#deb3bd` 浅粉 | Code analysis & planning (魔王). Empathetic requirement clarification, auto prompt optimization, produces implementation plans to `plan/implementation-plan.md`. |
 | **critic-originality** | subagent | ds-v4-flash | — | Checks A1-A4: sentence reuse, material borrowing, metaphor overlap, ending similarity against `ref/` |
@@ -209,6 +209,18 @@ Kaltsit must select at least 1 per category; can select more based on article th
 - **Punctuation in code/config files**: Minimize Chinese-specific quotation marks in all configuration files, markdown documentation, and code.
 - **Quote style**: Use English double quotes "". A space must follow the closing quote only if content follows.
 - **Spacing rule**: All English punctuation must be followed by a space only if there is more content after the punctuation. No trailing space at end of line.
+
+## Development Documentation
+
+When modifying this repository (tools, agents, plugins, lexicons, or configuration), **consult the corresponding `docs/` file first**:
+
+| Area | Document |
+|------|----------|
+| Code style, naming, punctuation rules | `docs/CODE_STYLE.md` |
+| Scoring algorithm, deduction tables, verdict rules | `docs/SCORING.md` |
+| Essence tool behavior and output format | `docs/ESSENCE_TOOL.md` |
+| Recommend tool behavior, matching algorithm | `docs/RECOMMEND_TOOL.md` |
+| Lexicon structure, word lists, maintenance | `docs/LEXICON_GUIDE.md` |
 
 ## Tool Runtime
 

@@ -2,6 +2,7 @@
 description: Critic 子代理：结构与技法检查。判螺旋论证自然性、金句位置与质量、隐喻一致性、排比功能化、降维锚定执行情况。只判不改。
 mode: subagent
 model: deepseek/deepseek-v4-flash
+reasoningEffort: max
 hidden: false
 temperature: 0.3
 prompt: "{file:./.opencode/prompts/common.md}"
